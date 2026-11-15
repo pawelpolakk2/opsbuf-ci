@@ -3,6 +3,7 @@
 # on 443 and a Bonjour name. Safe to run again.
 # Usage: scripts/add-site.sh <host> <port> <service name> <LaunchAgent label>
 #   e.g. scripts/add-site.sh opsbuf.local 7480 "opsbuf web" pl.opsbuf.web.name
+# The label "-" skips the Bonjour name, for an app that announces its own (the tracker, pl.ptx.issues.name).
 set -euo pipefail
 [[ $# -eq 4 ]] || { echo "Usage: scripts/add-site.sh <host> <port> <service name> <LaunchAgent label>" >&2; exit 2; }
 host=$1 port=$2 service=$3 label=$4
@@ -74,5 +75,5 @@ PLIST
 make_certificate_if_missing
 copy_certificate
 add_nginx_block_if_missing
-announce_name
+[[ "$label" == - ]] || announce_name
 echo "== $host is set up: https://$host"
