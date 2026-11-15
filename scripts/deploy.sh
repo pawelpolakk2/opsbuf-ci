@@ -35,7 +35,7 @@ install_certificate() {
     mkdir -p "$tls_base" && chmod 700 "$tls_base"
     ln -sfn "$HOME/.config/opsbuf-issues/ca" "$tls_base/ca"
     PTX_TLS_DIR="$tls_base" PTX_TLS_NAMES="opsbuf-ci.local localhost" PTX_TLS_ADDRESSES="127.0.0.1 192.168.88.3" \
-      bash "$HOME/private-repos/ptx-issue-tracker/scripts/make-certificate.sh"
+      bash "$HOME/private-repos/opsbuf-issues/scripts/make-certificate.sh"
   fi
   echo "== copy the certificate for nginx"
   run_on_mini "mkdir -p ~/Apps/nginx/tls/opsbuf-ci.local"
