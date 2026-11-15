@@ -13,7 +13,7 @@ run_on_mini() {
 
 sync_code() {
   echo "== sync the code"
-  rsync -az --delete -e "ssh -o BatchMode=yes" --exclude /data --exclude /repo.git --exclude .git --exclude node_modules --exclude .DS_Store \
+  rsync -az --delete -e "ssh -o BatchMode=yes" --exclude /data --exclude /repos --exclude /repo.git --exclude .git --exclude node_modules --exclude .DS_Store \
     "$repo/" "$mini:Apps/opsbuf-ci/"
 }
 
@@ -49,7 +49,17 @@ add_nginx_block() {
   run_on_mini "bash ~/Repos/certs/invalidate-nginx.sh"
 }
 
+# a restart ends the running build, so it waits until the CI has nothing to do (at most 30 min)
+wait_until_idle() {
+  for _ in $(seq 1 180); do
+    run_on_mini "curl -fsS http://127.0.0.1:7460/api/health 2> /dev/null" | grep -qv '"isBusy":true' && return 0
+    echo "== the CI is building; waiting before the restart"
+    sleep 10
+  done
+}
+
 restart_launch_agents() {
+  wait_until_idle
   echo "== (re)start the LaunchAgents"
   run_on_mini "set -e; d=gui/\$(id -u); for label in pl.opsbuf.ci pl.opsbuf.ci.name; do
     cp $app/scripts/\$label.plist ~/Library/LaunchAgents/
