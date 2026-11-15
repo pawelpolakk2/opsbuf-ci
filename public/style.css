@@ -190,3 +190,5 @@ mark { border-radius: 3px; background: #d977574d; color: var(--fg); }
   .tests-head input { width: 100%; }
 }
 .run-error { margin: 12px 0 0 32px; padding: 8px 12px; border-radius: 8px; background: var(--tint-error); color: var(--error); }
+.released { padding: 1px 7px; border-radius: 6px; background: var(--tint-ok); color: var(--ok); font-size: 12px; font-weight: 600; }
+.release-tag { padding: 0 6px; border-radius: 5px; background: #3a2c26; color: #f0b9a3; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }

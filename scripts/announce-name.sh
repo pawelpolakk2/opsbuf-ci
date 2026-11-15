@@ -4,7 +4,8 @@
 # (DHCP, another network), it announces again. Run by the LaunchAgent pl.opsbuf.ci.name.
 set -uo pipefail
 
-name=${PTX_ISSUES_HOST:-opsbuf-issue-tracker.local}
+name=${PTX_ISSUES_HOST:-opsbuf-ci.local}
+service=${ANNOUNCE_SERVICE:-opsbuf CI}
 port=${PTX_ISSUES_PORT:-443}
 check_every=30
 announced=''
@@ -26,7 +27,7 @@ stop_announcing() {
 
 start_announcing() {
   echo "$(date '+%F %T') announcing $name -> $1:$port"
-  dns-sd -P "opsbuf CI" _https._tcp local "$port" "$name" "$1" path=/ &
+  dns-sd -P "$service" _https._tcp local "$port" "$name" "$1" path=/ &
   pid=$!
 }
 

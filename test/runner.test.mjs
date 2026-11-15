@@ -58,3 +58,27 @@ test('refuses a branch the repo does not have', async () => {
   await assert.rejects(runner.enqueue({ branch: 'nope' }), /There is no branch "nope" in demo/);
   await assert.rejects(runner.enqueue({ project: 'other', branch: 'main' }), /There is no project "other"/);
 });
+
+test('releases a green main build, never a red one, and never another branch', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opsbuf-ci-'));
+  const repo = createRepo(root);
+  execFileSync('git', ['branch', 'feature'], { cwd: repo });
+  const marker = path.join(root, 'released');
+  const project = (testRun) => ({ id: 'demo', repo, steps: [{ name: 'Tests', run: testRun }], release: [{ name: 'Release', run: `touch ${marker}` }] });
+  const store = new Store(path.join(root, 'data'), 10);
+  await store.init();
+
+  const red = new Runner({ store, config: { projects: [project('exit 1')] }, dataDir: path.join(root, 'data') });
+  const redRun = await waitUntilFinished(store, (await red.enqueue({ branch: 'main' })).id);
+  assert.deepEqual(redRun.steps.map((it) => it.status), ['passed', 'failed', 'skipped']);
+  assert.equal(redRun.released, false);
+  assert.equal(fs.existsSync(marker), false);
+
+  const green = new Runner({ store, config: { projects: [project('true')] }, dataDir: path.join(root, 'data') });
+  const featureRun = await waitUntilFinished(store, (await green.enqueue({ branch: 'feature' })).id);
+  assert.deepEqual(featureRun.steps.map((it) => it.name), ['Checkout', 'Tests']);
+  const mainRun = await waitUntilFinished(store, (await green.enqueue({ branch: 'main' })).id);
+  assert.deepEqual(mainRun.steps.map((it) => [it.name, it.status, it.isRelease]), [['Checkout', 'passed', false], ['Tests', 'passed', false], ['Release', 'passed', true]]);
+  assert.equal(mainRun.released, true);
+  assert.equal(fs.existsSync(marker), true);
+});

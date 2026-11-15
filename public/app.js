@@ -125,7 +125,7 @@ function runRow(run) {
       <span class="id">#${run.id}</span>
       <span class="what">
         <span class="subject">${escape(run.commit?.subject ?? run.sha.slice(0, 10))}</span>
-        <span class="meta">${projectChip(run.project)}${branchChip(run.branch)}<code>${run.sha.slice(0, 7)}</code>${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}<span>${escape(run.trigger)}</span></span>
+        <span class="meta">${projectChip(run.project)}${branchChip(run.branch)}${releasedChip(run)}<code>${run.sha.slice(0, 7)}</code>${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}<span>${escape(run.trigger)}</span></span>
       </span>
       ${testBar(run.tests)}
       <span class="when"><span>${formatDuration(run.ms ?? runningFor(run))}</span><span class="dim">${formatAgo(run.startedAt ?? run.queuedAt)}</span></span>
@@ -189,7 +189,7 @@ function renderRunHead(run) {
   document.getElementById('run-head').innerHTML = `
     <div class="title">${statusIcon(run.status, 22)}<h1>${escape(run.commit?.subject ?? `Run #${run.id}`)}</h1></div>
     <div class="meta">
-      <span>#${run.id}</span>${projectChip(run.project)}${branchChip(run.branch)}<code title="${run.sha}">${run.sha.slice(0, 10)}</code>
+      <span>#${run.id}</span>${projectChip(run.project)}${branchChip(run.branch)}${releasedChip(run)}<code title="${run.sha}">${run.sha.slice(0, 10)}</code>
       ${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}
       <span>${escape(run.trigger)}</span>
       <span>${run.startedAt ? `started ${formatAgo(run.startedAt)}` : 'waiting in the queue'}</span>
@@ -246,7 +246,7 @@ function renderStep(element, step, index) {
   const header = `
     <button type="button" class="step-head" aria-expanded="${isOpen}">
       ${statusIcon(step.status)}
-      <span class="name">${escape(step.name)}</span>
+      <span class="name">${escape(step.name)}</span>${step.isRelease ? '<span class="release-tag">release</span>' : ''}
       ${step.run ? `<code class="cmd">${escape(step.run)}</code>` : ''}
       <span class="grow"></span>
       ${counts?.total ? `<span class="step-tests"><span class="ok">✓ ${counts.passed}</span>${counts.failed ? ` <span class="bad">✕ ${counts.failed}</span>` : ''}</span>` : ''}
@@ -408,6 +408,10 @@ function statusIcon(status, size = 16) {
     interrupted: '<circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M8 4.5v4.2M8 11.2v.3" stroke="var(--icon-ink)" stroke-width="1.8" stroke-linecap="round"/>',
   };
   return `<svg class="icon ${status}" width="${size}" height="${size}" viewBox="0 0 16 16" aria-label="${status}">${shapes[status] ?? shapes.waiting}</svg>`;
+}
+
+function releasedChip(run) {
+  return run.released ? '<span class="released">released</span>' : '';
 }
 
 function projectChip(project) {

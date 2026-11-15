@@ -31,6 +31,21 @@ Steps get `CI=true`, `CI_PROJECT`, `CI_RUN`, `CI_SHA`, `CI_BRANCH` and `CI_REPOR
 project keeps its checkout in `data/workspaces/<project>`; `target`, `node_modules`, `.angular` and the project's
 `keep` folders survive between runs, so a run takes minutes.
 
+## Releases
+
+A project's `release` steps run only on its default branch and only when every step before them passed; a red build
+ships nothing. The run then shows **released**. Each project releases itself with a script from its own repo:
+
+| Project        | Release                          | Where                              |
+|----------------|----------------------------------|------------------------------------|
+| opsbuf-web     | `deploy/release.sh`              | https://opsbuf.local               |
+| opsbuf-issues  | `scripts/release.sh`             | https://opsbuf-issue-tracker.local |
+| opsbuf-roadmap | `scripts/release.sh`             | https://opsbuf-roadmap.local       |
+| opsbuf-ci      | `scripts/release.sh`             | https://opsbuf-ci.local            |
+
+The CI's own release copies the code and asks for a restart (`data/restart-requested`); the server exits when the queue
+is empty and launchd starts the new code. A new https name for an app: `scripts/add-site.sh <host> <port> <name> <label>`.
+
 ## Run and deploy
 
 ```bash

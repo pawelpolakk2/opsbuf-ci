@@ -87,6 +87,12 @@
           "name": "Backend build",
           "run": "cd backend && ./gradlew installDist --no-daemon --console=plain"
         }
+      ],
+      "release": [
+        {
+          "name": "Release",
+          "run": "bash deploy/release.sh"
+        }
       ]
     },
     {
@@ -125,6 +131,12 @@
           "name": "Release build",
           "run": "cargo build --release"
         }
+      ],
+      "release": [
+        {
+          "name": "Release",
+          "run": "bash scripts/release.sh"
+        }
       ]
     },
     {
@@ -146,6 +158,12 @@
           "name": "Syntax",
           "run": "for f in server.mjs lib/*.mjs tools/*.mjs public/js/*.js; do node --check $f || exit 1; done && echo all files parse"
         }
+      ],
+      "release": [
+        {
+          "name": "Release",
+          "run": "bash scripts/release.sh"
+        }
       ]
     },
     {
@@ -166,6 +184,12 @@
         {
           "name": "Syntax",
           "run": "for f in server.mjs lib/*.mjs public/app.js scripts/*.sh; do case $f in *.sh) bash -n $f;; *) node --check $f;; esac || exit 1; done && echo all files parse"
+        }
+      ],
+      "release": [
+        {
+          "name": "Release",
+          "run": "bash scripts/release.sh"
         }
       ]
     }
