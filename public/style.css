@@ -192,3 +192,9 @@ mark { border-radius: 3px; background: #d977574d; color: var(--fg); }
 .run-error { margin: 12px 0 0 32px; padding: 8px 12px; border-radius: 8px; background: var(--tint-error); color: var(--error); }
 .released { padding: 1px 7px; border-radius: 6px; background: var(--tint-ok); color: var(--ok); font-size: 12px; font-weight: 600; }
 .release-tag { padding: 0 6px; border-radius: 5px; background: #3a2c26; color: #f0b9a3; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.artifacts { display: flex; flex-wrap: wrap; gap: 10px; }
+.artifact { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid #2c4a38; border-radius: 10px; background: var(--tint-ok); color: var(--ok); }
+.artifact:hover { filter: brightness(1.15); }
+.artifact-name { color: var(--fg); font-family: var(--mono); font-size: 12.5px; }
+.artifacts-gone { margin: 18px 0 0; }
+.has-files { color: var(--ok); }

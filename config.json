@@ -2,6 +2,7 @@
   "port": 7460,
   "data": "data",
   "keepRuns": 200,
+  "keepArtifacts": 10,
   "stepTimeoutSec": 1800,
   "env": {
     "PATH": "/Users/macmini/.nvm/versions/node/v26.13.0/bin:/Users/macmini/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
@@ -40,6 +41,12 @@
         {
           "name": "Build",
           "run": "pnpm build"
+        }
+      ],
+      "release": [
+        {
+          "name": "Package",
+          "run": "bash scripts/ci-package.sh"
         }
       ]
     },

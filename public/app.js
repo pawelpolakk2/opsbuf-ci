@@ -127,18 +127,19 @@ function runRow(run) {
         <span class="subject">${escape(run.commit?.subject ?? run.sha.slice(0, 10))}</span>
         <span class="meta">${projectChip(run.project)}${branchChip(run.branch)}${releasedChip(run)}<code>${run.sha.slice(0, 7)}</code>${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}<span>${escape(run.trigger)}</span></span>
       </span>
-      ${testBar(run.tests)}
+      ${testBar(run.tests, run.artifacts)}
       <span class="when"><span>${formatDuration(run.ms ?? runningFor(run))}</span><span class="dim">${formatAgo(run.startedAt ?? run.queuedAt)}</span></span>
     </a>`;
 }
 
-function testBar(counts) {
-  if (!counts?.total) return '<span class="tests none"></span>';
+function testBar(counts, artifacts) {
+  const files = artifacts?.length ? `<span class="has-files" title="${artifacts.length} file(s) to download">⬇ ${artifacts.length}</span>` : '';
+  if (!counts?.total) return `<span class="tests none">${files}</span>`;
   const width = (count) => `${(100 * count) / counts.total}%`;
   return `
     <span class="tests">
       <span class="bar"><i class="passed" style="width:${width(counts.passed)}"></i><i class="failed" style="width:${width(counts.failed)}"></i><i class="skipped" style="width:${width(counts.skipped)}"></i></span>
-      <span class="numbers"><span class="ok">✓ ${counts.passed}</span>${counts.failed ? `<span class="bad">✕ ${counts.failed}</span>` : ''}${counts.skipped ? `<span class="dim">○ ${counts.skipped}</span>` : ''}</span>
+      <span class="numbers"><span class="ok">✓ ${counts.passed}</span>${counts.failed ? `<span class="bad">✕ ${counts.failed}</span>` : ''}${counts.skipped ? `<span class="dim">○ ${counts.skipped}</span>` : ''}${files}</span>
     </span>`;
 }
 
@@ -151,6 +152,7 @@ async function openRun(id) {
       <a class="back" href="#/">← All runs</a>
       <section id="run-head" class="run-head"></section>
       <section id="summary" class="summary"></section>
+      <section id="artifacts"></section>
       <h2>Steps</h2>
       <section id="steps" class="steps"></section>
       <div class="tests-head">
@@ -175,6 +177,7 @@ async function refreshRun() {
     view.run = run;
     renderRunHead(run);
     renderSummary(run);
+    renderArtifacts(run);
     renderSteps(run);
     renderTests(false);
     await refreshOpenLogs(run);
@@ -217,6 +220,26 @@ function renderSummary(run) {
     <div class="card"><span class="label">Tests</span>${ring(counts)}
       <div class="ring-legend"><span class="ok">${counts.passed} passed</span><span class="${counts.failed ? 'bad' : 'dim'}">${counts.failed} failed</span><span class="dim">${counts.skipped} skipped</span></div></div>
     <div class="card"><span class="label">Duration</span><b class="big">${formatDuration(ms)}</b><span class="hint">${run.steps.filter((it) => it.status === 'passed' || it.status === 'failed').length} of ${run.steps.length} steps done</span></div>`;
+}
+
+function renderArtifacts(run) {
+  const container = document.getElementById('artifacts');
+  if (!run.artifacts?.length) {
+    container.innerHTML = run.artifactsRemoved ? '<p class="hint artifacts-gone">The files of this run were removed; only the newest runs keep theirs.</p>' : '';
+    return;
+  }
+  container.innerHTML = `
+    <h2>Files</h2>
+    <div class="artifacts">${run.artifacts.map((it) => `
+      <a class="artifact" href="/api/runs/${run.id}/artifacts/${encodeURIComponent(it.name)}" download>
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8m0 0L4.8 7.3M8 10.5l3.2-3.2M3 13.5h10"/></svg>
+        <span class="artifact-name">${escape(it.name)}</span><span class="dim">${formatBytes(it.bytes)}</span>
+      </a>`).join('')}
+    </div>`;
+}
+
+function formatBytes(bytes) {
+  return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function ring(counts) {

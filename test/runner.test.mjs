@@ -64,7 +64,7 @@ test('releases a green main build, never a red one, and never another branch', a
   const repo = createRepo(root);
   execFileSync('git', ['branch', 'feature'], { cwd: repo });
   const marker = path.join(root, 'released');
-  const project = (testRun) => ({ id: 'demo', repo, steps: [{ name: 'Tests', run: testRun }], release: [{ name: 'Release', run: `touch ${marker}` }] });
+  const project = (testRun) => ({ id: 'demo', repo, steps: [{ name: 'Tests', run: testRun }], release: [{ name: 'Release', run: `touch ${marker} && echo zip > "$CI_ARTIFACTS/app.zip"` }] });
   const store = new Store(path.join(root, 'data'), 10);
   await store.init();
 
@@ -81,4 +81,19 @@ test('releases a green main build, never a red one, and never another branch', a
   assert.deepEqual(mainRun.steps.map((it) => [it.name, it.status, it.isRelease]), [['Checkout', 'passed', false], ['Tests', 'passed', false], ['Release', 'passed', true]]);
   assert.equal(mainRun.released, true);
   assert.equal(fs.existsSync(marker), true);
+  assert.deepEqual(mainRun.artifacts, [{ name: 'app.zip', bytes: 4 }]);
+  assert.deepEqual(redRun.artifacts, []);
+});
+
+test('keeps the files of the newest runs only', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opsbuf-ci-'));
+  const store = new Store(path.join(root, 'data'), 10);
+  await store.init();
+  for (const id of [1, 2, 3]) {
+    await store.save({ id, status: 'passed', steps: [], artifacts: [{ name: 'app.zip', bytes: 1 }] });
+    fs.writeFileSync(path.join(store.artifactsDir(id), 'app.zip'), 'x');
+  }
+  await store.removeOldArtifacts(2);
+  assert.deepEqual(store.list().map((it) => [it.id, it.artifacts.length]), [[3, 1], [2, 1], [1, 0]]);
+  assert.equal(fs.existsSync(path.join(store.artifactsDir(1), 'app.zip')), false);
 });

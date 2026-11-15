@@ -2,6 +2,7 @@
 // opsbuf-ci: a small CI for the opsbuf repo. One process serves the page (public/) and the API (/api) on 127.0.0.1.
 import http from 'node:http';
 import fs from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './lib/store.mjs';
@@ -48,6 +49,10 @@ server.listen(port, '127.0.0.1', () => {
 
 async function answerApi(request, response, url) {
   refuseOtherSites(request);
+  const artifact = /^\/api\/runs\/(\d+)\/artifacts\/([^/]+)$/.exec(url.pathname);
+  if (artifact && request.method === 'GET') return sendArtifact(response, Number(artifact[1]), decodeURIComponent(artifact[2]));
+  const latest = /^\/api\/projects\/([\w.-]+)\/latest$/.exec(url.pathname);
+  if (latest && request.method === 'GET') return redirectToLatestArtifact(response, latest[1]);
   const log = /^\/api\/runs\/(\d+)\/steps\/(\d+)\/log$/.exec(url.pathname);
   if (log && request.method === 'GET') return sendLog(response, Number(log[1]), Number(log[2]), Number(url.searchParams.get('from') || 0));
   for (const [method, pattern, answer] of routes) {
@@ -88,6 +93,28 @@ async function sendLog(response, id, stepIndex, from) {
   const text = await fs.readFile(store.logPath(id, stepIndex)).catch(() => Buffer.alloc(0));
   response.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'x-log-size': String(text.length), 'cache-control': 'no-store' });
   response.end(text.subarray(Math.min(from, text.length)));
+}
+
+async function sendArtifact(response, id, name) {
+  requireRun(id);
+  if (name.includes('/') || name.startsWith('.')) throw Object.assign(new Error('Not found.'), { status: 404 });
+  const file = path.join(store.artifactsDir(id), name);
+  const stat = await fs.stat(file).catch(() => null);
+  if (!stat?.isFile()) throw Object.assign(new Error(`Run #${id} has no file ${name}.`), { status: 404 });
+  response.writeHead(200, {
+    'content-type': 'application/octet-stream',
+    'content-length': String(stat.size),
+    'content-disposition': `attachment; filename="${name.replace(/"/g, '')}"`,
+  });
+  createReadStream(file).pipe(response);
+}
+
+/** The newest released file of a project, at a link that never changes: /api/projects/opsbuf-app/latest. */
+function redirectToLatestArtifact(response, project) {
+  const run = store.list().find((it) => it.project === project && it.released && it.artifacts?.length);
+  if (!run) throw Object.assign(new Error(`${project} has no released file yet.`), { status: 404 });
+  response.writeHead(302, { location: `/api/runs/${run.id}/artifacts/${encodeURIComponent(run.artifacts[0].name)}` });
+  response.end();
 }
 
 async function serveStatic(response, pathname) {

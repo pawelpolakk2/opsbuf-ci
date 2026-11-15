@@ -38,10 +38,15 @@ ships nothing. The run then shows **released**. Each project releases itself wit
 
 | Project        | Release                          | Where                              |
 |----------------|----------------------------------|------------------------------------|
+| opsbuf-app     | `scripts/ci-package.sh`          | a zip of opsbuf.app on the run's page |
 | opsbuf-web     | `deploy/release.sh`              | https://opsbuf.local               |
 | opsbuf-issues  | `scripts/release.sh`             | https://opsbuf-issue-tracker.local |
 | opsbuf-roadmap | `scripts/release.sh`             | https://opsbuf-roadmap.local       |
 | opsbuf-ci      | `scripts/release.sh`             | https://opsbuf-ci.local            |
+
+A step may leave files in `$CI_ARTIFACTS`; the run's page offers them for download, and
+`/api/projects/<project>/latest` always points at the newest released file. Only the newest 10 runs (`keepArtifacts`)
+keep their files.
 
 The CI's own release copies the code and asks for a restart (`data/restart-requested`); the server exits when the queue
 is empty and launchd starts the new code. A new https name for an app: `scripts/add-site.sh <host> <port> <name> <label>`.
