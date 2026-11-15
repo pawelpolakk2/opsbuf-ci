@@ -90,6 +90,44 @@
       ]
     },
     {
+      "id": "opsbuf-issues",
+      "name": "opsbuf issues",
+      "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-issues.git",
+      "defaultBranch": "main",
+      "steps": [
+        {
+          "name": "Install",
+          "run": "cd web && pnpm install --frozen-lockfile",
+          "stopOnFailure": true
+        },
+        {
+          "name": "Rust tests",
+          "run": "cargo test --no-fail-fast",
+          "report": {
+            "type": "cargo",
+            "title": "Rust"
+          }
+        },
+        {
+          "name": "Web tests",
+          "run": "cd web && pnpm exec ng test --watch=false --reporters=default --reporters=junit --output-file=\"$CI_REPORTS/web-tests.xml\"",
+          "report": {
+            "type": "junit",
+            "file": "web-tests.xml",
+            "title": "Web"
+          }
+        },
+        {
+          "name": "Web build",
+          "run": "cd web && pnpm build"
+        },
+        {
+          "name": "Release build",
+          "run": "cargo build --release"
+        }
+      ]
+    },
+    {
       "id": "opsbuf-ci",
       "name": "opsbuf CI",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",
