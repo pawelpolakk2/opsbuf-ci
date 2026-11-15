@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>pl.opsbuf.ci</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/macmini/.nvm/versions/node/v26.13.0/bin/node</string>
+        <string>server.mjs</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>OPSBUF_CI_PORT</key>
+        <string>7460</string>
+        <key>OPSBUF_CI_PUBLIC_URL</key>
+        <string>https://opsbuf-ci.local</string>
+        <key>PATH</key>
+        <string>/Users/macmini/.nvm/versions/node/v26.13.0/bin:/Users/macmini/.cargo/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>WorkingDirectory</key>
+    <string>/Users/macmini/Apps/opsbuf-ci</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/macmini/Apps/logs/opsbuf-ci.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/macmini/Apps/logs/opsbuf-ci-error.log</string>
+</dict>
+</plist>

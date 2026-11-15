@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>opsbuf CI</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23d97757'/%3E%3Cpath d='M5.2 8.2l1.8 1.8 3.8-4' stroke='%231f1e1d' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#/"><span class="logo"></span>opsbuf <b>CI</b></a>
+    <span class="grow"></span>
+    <form class="start" id="start">
+      <label class="sr" for="project">Project</label>
+      <select id="project"></select>
+      <label class="sr" for="branch">Branch</label>
+      <select id="branch"></select>
+      <button type="submit" class="primary">Run</button>
+    </form>
+  </header>
+  <main id="page"></main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

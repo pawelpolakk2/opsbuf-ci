@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>pl.opsbuf.ci.name</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/macmini/Apps/opsbuf-ci/scripts/announce-name.sh</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PTX_ISSUES_HOST</key>
+        <string>opsbuf-ci.local</string>
+        <key>PTX_ISSUES_PORT</key>
+        <string>443</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/macmini/Apps/logs/opsbuf-ci-name.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/macmini/Apps/logs/opsbuf-ci-name.log</string>
+</dict>
+</plist>

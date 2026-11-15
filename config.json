@@ -1,0 +1,114 @@
+{
+  "port": 7460,
+  "data": "data",
+  "keepRuns": 200,
+  "stepTimeoutSec": 1800,
+  "env": {
+    "PATH": "/Users/macmini/.nvm/versions/node/v26.13.0/bin:/Users/macmini/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "CARGO_TERM_COLOR": "never",
+    "FORCE_COLOR": "0"
+  },
+  "projects": [
+    {
+      "id": "opsbuf-app",
+      "name": "opsbuf app",
+      "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-app.git",
+      "defaultBranch": "main",
+      "steps": [
+        {
+          "name": "Install",
+          "run": "pnpm install --frozen-lockfile",
+          "stopOnFailure": true
+        },
+        {
+          "name": "Rust tests",
+          "run": "cargo test --workspace --no-fail-fast",
+          "report": {
+            "type": "cargo",
+            "title": "Rust"
+          }
+        },
+        {
+          "name": "UI tests",
+          "run": "pnpm --filter opsbuf-ui test --reporters=default --reporters=junit --output-file=\"$CI_REPORTS/ui-tests.xml\"",
+          "report": {
+            "type": "junit",
+            "file": "ui-tests.xml",
+            "title": "UI"
+          }
+        },
+        {
+          "name": "Build",
+          "run": "pnpm build"
+        }
+      ]
+    },
+    {
+      "id": "opsbuf-web",
+      "name": "opsbuf web",
+      "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-web.git",
+      "defaultBranch": "main",
+      "keep": [
+        ".gradle",
+        "build"
+      ],
+      "env": {
+        "JAVA_HOME": "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+      },
+      "steps": [
+        {
+          "name": "Install",
+          "run": "cd frontend && pnpm install --frozen-lockfile",
+          "stopOnFailure": true
+        },
+        {
+          "name": "Backend tests",
+          "run": "cd backend && ./gradlew test --no-daemon --console=plain",
+          "report": {
+            "type": "junit",
+            "dir": "backend/build/test-results/test",
+            "title": "Backend"
+          }
+        },
+        {
+          "name": "Frontend tests",
+          "run": "cd frontend && pnpm exec ng test --watch=false --reporters=default --reporters=junit --output-file=\"$CI_REPORTS/frontend-tests.xml\"",
+          "report": {
+            "type": "junit",
+            "file": "frontend-tests.xml",
+            "title": "Frontend"
+          }
+        },
+        {
+          "name": "Frontend build",
+          "run": "cd frontend && pnpm build"
+        },
+        {
+          "name": "Backend build",
+          "run": "cd backend && ./gradlew installDist --no-daemon --console=plain"
+        }
+      ]
+    },
+    {
+      "id": "opsbuf-ci",
+      "name": "opsbuf CI",
+      "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",
+      "defaultBranch": "main",
+      "steps": [
+        {
+          "name": "Tests",
+          "run": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=\"$CI_REPORTS/tests.xml\" test/*.test.mjs",
+          "report": {
+            "type": "junit",
+            "file": "tests.xml",
+            "title": "opsbuf CI"
+          }
+        },
+        {
+          "name": "Syntax",
+          "run": "for f in server.mjs lib/*.mjs public/app.js scripts/*.sh; do case $f in *.sh) bash -n $f;; *) node --check $f;; esac || exit 1; done && echo all files parse"
+        }
+      ]
+    }
+  ]
+}
