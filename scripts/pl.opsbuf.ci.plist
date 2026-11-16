@@ -14,7 +14,7 @@
         <key>OPSBUF_CI_PORT</key>
         <string>7460</string>
         <key>OPSBUF_CI_PUBLIC_URL</key>
-        <string>https://opsbuf-ci.local</string>
+        <string>https://ci.local</string>
         <key>PATH</key>
         <string>/Users/macmini/.nvm/versions/node/v26.13.0/bin:/Users/macmini/.cargo/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
     </dict>

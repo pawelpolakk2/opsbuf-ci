@@ -1,4 +1,4 @@
-// The page of opsbuf CI: the list of runs, and one run with its steps, logs and test results.
+// The page of the CI: the list of runs, and one run with its steps, logs and test results.
 const page = document.getElementById('page');
 const LIST_REFRESH_MS = 3000;
 const RUN_REFRESH_MS = 1500;

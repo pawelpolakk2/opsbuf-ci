@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Announces opsbuf-ci.local over Bonjour with this Mac's current address, and the tracker as an _https._tcp
+# Announces ci.local over Bonjour with this Mac's current address, and the tracker as an _https._tcp
 # service. `dns-sd -R` would announce only the service; `-P` also publishes the host name. When the address changes
 # (DHCP, another network), it announces again. Run by the LaunchAgent pl.opsbuf.ci.name.
 set -uo pipefail
 
-name=${PTX_ISSUES_HOST:-opsbuf-ci.local}
-service=${ANNOUNCE_SERVICE:-opsbuf CI}
+name=${PTX_ISSUES_HOST:-ci.local}
+service=${ANNOUNCE_SERVICE:-CI}
 port=${PTX_ISSUES_PORT:-443}
 check_every=30
 announced=''

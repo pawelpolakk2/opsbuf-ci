@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploys opsbuf CI to the Mac mini: code, the repos you push to, the https name and the LaunchAgent. Safe to run again.
+# Deploys the CI to the Mac mini: code, the repos you push to, the https name and the LaunchAgent. Safe to run again.
 # After the first deploy the CI releases itself: a green build of main runs scripts/release.sh.
 set -euo pipefail
 
@@ -48,7 +48,7 @@ restart_ci() {
 
 sync_code
 create_push_repos
-bash "$repo/scripts/add-site.sh" opsbuf-ci.local 7460 "opsbuf CI" pl.opsbuf.ci.name
+bash "$repo/scripts/add-site.sh" ci.local 7460 "CI" pl.opsbuf.ci.name
 restart_ci
 echo
-echo "== done: https://opsbuf-ci.local · in a project: git remote set-url --add --push origin $mini:Apps/opsbuf-ci/repos/<project>.git"
+echo "== done: https://ci.local · in a project: git remote set-url --add --push origin $mini:Apps/opsbuf-ci/repos/<project>.git"

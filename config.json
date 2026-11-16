@@ -239,7 +239,7 @@
     },
     {
       "id": "opsbuf-ci",
-      "name": "opsbuf CI",
+      "name": "CI",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",
       "defaultBranch": "main",
       "steps": [
@@ -249,7 +249,7 @@
           "report": {
             "type": "junit",
             "file": "tests.xml",
-            "title": "opsbuf CI"
+            "title": "CI"
           }
         },
         {

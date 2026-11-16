@@ -1,7 +1,11 @@
-# opsbuf CI
+# CI
 
-A small CI for the opsbuf projects. It builds a project, runs its tests and shows the results on one page:
-https://opsbuf-ci.local. Node without dependencies, like the roadmap.
+A small CI for the projects on the Mac mini: opsbuf, elektryka, instalacje and any other added to `config.json`. It
+builds a project, runs its tests, releases green main builds and shows the results on one page: https://ci.local.
+Node without dependencies.
+
+The folders and names on the mini still say `opsbuf-ci` (`~/Apps/opsbuf-ci`, `repos/<project>.git`, `pl.opsbuf.ci`),
+because every project pushes to those paths; renaming them would mean changing the push remote of every project.
 
 ## How a build starts
 
@@ -42,7 +46,7 @@ ships nothing. The run then shows **released**. Each project releases itself wit
 | opsbuf-web     | `deploy/release.sh`              | https://opsbuf.local               |
 | opsbuf-issues  | `scripts/release.sh`             | https://opsbuf-issues.local       |
 | opsbuf-roadmap | `scripts/release.sh`             | https://opsbuf-roadmap.local       |
-| opsbuf-ci      | `scripts/release.sh`             | https://opsbuf-ci.local            |
+| opsbuf-ci      | `scripts/release.sh`             | https://ci.local                   |
 | elektryka      | `scripts/release.sh`             | https://elektryka.local            |
 | instalacje     | `scripts/release.sh`             | https://instalacje.local           |
 
@@ -60,6 +64,6 @@ npm test                 # parsers and the runner, on a temporary git repo
 bash scripts/deploy.sh   # code, push repos, certificate, nginx and LaunchAgents on the mini
 ```
 
-On the mini: LaunchAgent `pl.opsbuf.ci` serves 127.0.0.1:7460, `pl.opsbuf.ci.name` announces `opsbuf-ci.local`, and
+On the mini: LaunchAgent `pl.opsbuf.ci` serves 127.0.0.1:7460, `pl.opsbuf.ci.name` announces `ci.local`, and
 nginx (as `macmini`, no sudo) serves https on 443 with a certificate from the local CA. Runs live in
 `~/Apps/opsbuf-ci/data/runs/<id>/`; the last 200 are kept. Logs: `~/Apps/logs/opsbuf-ci*.log`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// opsbuf-ci: a small CI for the opsbuf repo. One process serves the page (public/) and the API (/api) on 127.0.0.1.
+// A small CI for the projects on the Mac mini. One process serves the page (public/) and the API (/api) on 127.0.0.1.
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
@@ -42,7 +42,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(port, '127.0.0.1', () => {
-  console.log(`opsbuf-ci  ${publicUrl}`);
+  console.log(`CI  ${publicUrl}`);
   console.log(`projects   ${config.projects.map((it) => `${it.id} (${it.repo})`).join(', ')}`);
   console.log(`data       ${dataDir} (${store.list().length} runs)`);
 });
