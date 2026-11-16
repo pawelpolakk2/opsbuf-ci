@@ -43,6 +43,7 @@ ships nothing. The run then shows **released**. Each project releases itself wit
 | opsbuf-issues  | `scripts/release.sh`             | https://opsbuf-issues.local       |
 | opsbuf-roadmap | `scripts/release.sh`             | https://opsbuf-roadmap.local       |
 | opsbuf-ci      | `scripts/release.sh`             | https://opsbuf-ci.local            |
+| elektryka      | `scripts/release.sh`             | https://elektryka.local            |
 
 A step may leave files in `$CI_ARTIFACTS`; the run's page offers them for download, and
 `/api/projects/<project>/latest` always points at the newest released file. Only the newest 10 runs (`keepArtifacts`)
