@@ -206,6 +206,38 @@
       ]
     },
     {
+      "id": "instalacje",
+      "name": "instalacje",
+      "repo": "/Users/macmini/Apps/opsbuf-ci/repos/instalacje.git",
+      "defaultBranch": "main",
+      "steps": [
+        {
+          "name": "Install",
+          "run": "npm ci --no-audit --no-fund",
+          "stopOnFailure": true
+        },
+        {
+          "name": "Tests",
+          "run": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=\"$CI_REPORTS/tests.xml\" \"test/*.test.ts\"",
+          "report": {
+            "type": "junit",
+            "file": "tests.xml",
+            "title": "instalacje"
+          }
+        },
+        {
+          "name": "Build",
+          "run": "npm run build"
+        }
+      ],
+      "release": [
+        {
+          "name": "Release",
+          "run": "bash scripts/release.sh"
+        }
+      ]
+    },
+    {
       "id": "opsbuf-ci",
       "name": "opsbuf CI",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",
