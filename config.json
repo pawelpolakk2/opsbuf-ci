@@ -67,6 +67,17 @@
           "params": [
             "tests"
           ],
+          "prepare": {
+            "name": "dev-env seed",
+            "inputs": [
+              "dev-env/seed",
+              "dev-env/data",
+              "dev-env/k8s/infra.yaml",
+              "dev-env/kustomization.yaml",
+              "dev-env/seed.sh"
+            ],
+            "run": "bash dev-env/seed.sh"
+          },
           "report": {
             "type": "junit",
             "file": "e2e.xml",

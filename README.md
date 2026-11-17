@@ -73,6 +73,15 @@ declared param reaches the step as `CI_PARAM_<NAME>` (`tests` -> `CI_PARAM_TESTS
 refused. Cancel takes a waiting run out of the queue, or stops the running step's process group; the run ends as
 **cancelled**, with the reason when the CI cancelled it.
 
+### Prepare
+
+A job may get ready first: `"prepare": {"name", "inputs", "run"}` is a step between Checkout and the job's own step. The
+CI hashes the `inputs` (files or folders) of the commit under test. When the hash equals the stamp it kept in
+`data/stamps` the last time the step passed, the step is skipped and its log says it is up to date; otherwise it runs, its
+log says why, and the new stamp is kept only when it passed. A failed prepare stops the job. opsbuf-app's e2e job reseeds
+the dev-env logs this way (`dev-env/seed.sh`: only the log shipper, never Redis or a down and up), so a seed change
+reaches the mini before the tests that need it.
+
 ### Two lanes
 
 Jobs run in a lane of their own, next to the builds, so a long end-to-end suite never holds up a build or a release.
