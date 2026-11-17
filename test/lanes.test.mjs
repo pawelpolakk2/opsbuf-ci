@@ -28,7 +28,7 @@ async function createSetup() {
     steps: [{ name: 'Tests', run: 'sleep 0.3' }],
     release: [{ name: 'Release', run: 'true' }],
     jobs: {
-      e2e: { name: 'End-to-end', every: '1h', stopOnRelease: true, run: `pwd > "$CI_ARTIFACTS/pwd.txt"; echo "$TMPDIR" > "$CI_ARTIFACTS/tmp.txt"; until [ -f ${jobGate} ]; do sleep 0.05; done` },
+      e2e: { name: 'End-to-end', every: '1h', run: `pwd > "$CI_ARTIFACTS/pwd.txt"; echo "$TMPDIR" > "$CI_ARTIFACTS/tmp.txt"; until [ -f ${jobGate} ]; do sleep 0.05; done` },
     },
   };
   const dataDir = path.join(root, 'data');
@@ -37,11 +37,7 @@ async function createSetup() {
   const exits = [];
   const runner = new Runner({ store, config: { projects: [project] }, dataDir, exit: () => exits.push(Date.now()) });
   const sha = git('rev-parse', 'HEAD').toString().trim();
-  const commit = (text) => {
-    fs.writeFileSync(path.join(repo, 'file.txt'), `${text}\n`);
-    git('commit', '-q', '-am', text);
-  };
-  return { store, runner, sha, dataDir, exits, commit, openJobGate: () => fs.writeFileSync(jobGate, '') };
+  return { store, runner, sha, dataDir, exits, openJobGate: () => fs.writeFileSync(jobGate, '') };
 }
 
 async function waitFor(store, id, statuses) {
@@ -100,17 +96,28 @@ test('two builds keep their order', async () => {
   assert.ok(Date.parse(setup.store.find(second.id).startedAt) >= Date.parse(setup.store.find(first.id).finishedAt));
 });
 
-test('a release of the project first stops its running e2e job, which shows why', async () => {
+test('a release of the project runs to its end while a job of the project keeps running', async () => {
   const setup = await createSetup();
   const job = await setup.runner.startJob({ project: 'demo', job: 'e2e', sha: setup.sha });
   await waitFor(setup.store, job.id, ['running']);
-  const release = await setup.runner.enqueue({ branch: 'main' });
-  const released = await waitFor(setup.store, release.id, FINISHED);
-  assert.equal(released.released, true);
-  const stopped = await waitFor(setup.store, job.id, FINISHED);
-  assert.equal(stopped.status, 'cancelled');
-  assert.equal(stopped.cancelReason, `Run #${release.id} released a new build of demo while it ran.`);
-  assert.ok(Date.parse(stopped.finishedAt) <= Date.parse(released.steps.at(-1).startedAt) + 100);
+  const release = await waitFor(setup.store, (await setup.runner.enqueue({ branch: 'main' })).id, FINISHED);
+  assert.equal(release.released, true);
+  assert.equal(setup.store.find(job.id).status, 'running');
+  setup.openJobGate();
+  assert.equal((await waitFor(setup.store, job.id, FINISHED)).status, 'passed');
+});
+
+test('a scheduled run that was cancelled does not count, so the schedule starts the job again', async () => {
+  const setup = await createSetup();
+  const release = await waitFor(setup.store, (await setup.runner.enqueue({ branch: 'main' })).id, FINISHED);
+  const [cancelled] = await setup.runner.scheduleJobs();
+  await waitFor(setup.store, cancelled.id, ['running']);
+  await setup.runner.cancel(cancelled.id, 'The CI restarted on its new code.');
+  await waitFor(setup.store, cancelled.id, FINISHED);
+  const [next] = await setup.runner.scheduleJobs();
+  assert.equal(next.sha, release.sha);
+  setup.openJobGate();
+  await waitFor(setup.store, next.id, FINISHED);
 });
 
 test('a restart waits for the builds, then cancels the jobs, so none stays running', async () => {
@@ -129,18 +136,4 @@ test('a restart waits for the builds, then cancels the jobs, so none stays runni
   for (let attempt = 0; attempt < 40 && !setup.exits.length; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(setup.exits.length, 1);
   assert.equal(fs.existsSync(path.join(setup.dataDir, 'restart-requested')), false);
-});
-
-test('the schedule tests a new release at once when the release stopped the last scheduled run', async () => {
-  const setup = await createSetup();
-  await waitFor(setup.store, (await setup.runner.enqueue({ branch: 'main' })).id, FINISHED);
-  const [stopped] = await setup.runner.scheduleJobs();
-  await waitFor(setup.store, stopped.id, ['running']);
-  setup.commit('two');
-  const release = await waitFor(setup.store, (await setup.runner.enqueue({ branch: 'main' })).id, FINISHED);
-  assert.equal((await waitFor(setup.store, stopped.id, FINISHED)).status, 'cancelled');
-  const [next] = await setup.runner.scheduleJobs();
-  assert.equal(next.sha, release.sha);
-  setup.openJobGate();
-  await waitFor(setup.store, next.id, FINISHED);
 });
