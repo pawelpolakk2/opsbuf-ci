@@ -70,8 +70,21 @@ A job is a named task of a project in `config.json`, started on demand, not by a
 
 A job run has Checkout and the job's step. It runs on the commit it was given, by default the last released one. Each
 declared param reaches the step as `CI_PARAM_<NAME>` (`tests` -> `CI_PARAM_TESTS`); a param it does not declare is
-refused. The CI runs one run at a time, so a second start waits in the queue. Cancel takes a waiting run out of the
-queue, or stops the running step's process group; the run ends as **cancelled**.
+refused. Cancel takes a waiting run out of the queue, or stops the running step's process group; the run ends as
+**cancelled**, with the reason when the CI cancelled it.
+
+### Two lanes
+
+Jobs run in a lane of their own, next to the builds, so a long end-to-end suite never holds up a build or a release.
+Each lane runs one run at a time, in order: builds (with their releases and merges) in the build lane, jobs in the job
+lane, so two full suites never fight. `/api/health` shows what runs and waits in each lane, and every run has its
+`lane`. They keep out of each other's way:
+
+- a job checks out into `data/workspaces/<project>-jobs`, never the build's workspace;
+- every run gets a `TMPDIR` of its own, removed when it ends;
+- a job with `"stopOnRelease": true` (opsbuf-app's e2e) is cancelled when a release of its project starts, because the
+  release replaces the files it runs on; the release waits for it to stop, up to 30 s. A run cancelled this way does not
+  count for the schedule, so the new release gets its run at the next check.
 
 Start a job from a project's tab on the page (**Run job**, with its params), or from the API. Starting and cancelling
 need the token in `apiTokenFile` (on the mini the tracker token); without that file the API refuses them all.
@@ -107,8 +120,8 @@ project's `mirror` (its GitHub repo). A red check skips the merge; a conflict fa
 way a `PTX` ticket gets a note from author `ci` with the reason and the run (`tracker` in `config.json`). Other branches
 are only tested.
 
-The CI's own release copies the code and asks for a restart (`data/restart-requested`); the server exits when the queue
-is empty and launchd starts the new code. A new https name for an app: `scripts/add-site.sh <host> <port> <name> <label>`.
+The CI's own release copies the code and asks for a restart (`data/restart-requested`); once no build runs or waits,
+the server cancels its jobs (reason: the restart, so none stays running), exits, and launchd starts the new code. A new https name for an app: `scripts/add-site.sh <host> <port> <name> <label>`.
 
 ## Run and deploy
 

@@ -290,6 +290,7 @@ function renderRunHead(run) {
       ${ACTIVE.has(run.status) ? `<button type="button" class="ghost" id="cancel">Cancel</button>` : ''}
     </div>
     ${run.error ? `<p class="run-error">The CI failed on its own: ${escape(run.error)}</p>` : ''}
+    ${run.cancelReason ? `<p class="e2e-summary">${escape(run.cancelReason)}</p>` : ''}
     ${findJobSummary(run) ? `<p class="e2e-summary">${describeJobSummary(run.steps.at(-1).name, findJobSummary(run))}</p>` : ''}`;
   document.getElementById('rerun')?.addEventListener('click', () => rerun(run));
   document.getElementById('cancel')?.addEventListener('click', () => cancelRun(run));
