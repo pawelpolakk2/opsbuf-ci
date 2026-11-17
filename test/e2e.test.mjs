@@ -30,7 +30,7 @@ async function createSetup() {
     repo,
     steps: [{ name: 'Tests', run: 'true' }],
     release: [{ name: 'Release', run: 'true' }],
-    e2e: { every: '1h', run: `cp ${results} "$CI_REPORTS/e2e.xml"`, report: { type: 'junit', file: 'e2e.xml', title: 'End-to-end' } },
+    jobs: { e2e: { name: 'End-to-end', every: '1h', run: `cp ${results} "$CI_REPORTS/e2e.xml"`, report: { type: 'junit', file: 'e2e.xml', title: 'End-to-end' } } },
   };
   const tickets = [];
   const tracker = { addIssue: async (text) => (tickets.push(text), { id: 100 + tickets.length, existing: false }) };
@@ -63,7 +63,7 @@ async function waitUntilFinished(store, id) {
 }
 
 async function scheduleAndFinish(setup, now) {
-  const [started] = await setup.runner.scheduleEndToEnd(now);
+  const [started] = await setup.runner.scheduleJobs(now);
   return started ? waitUntilFinished(setup.store, started.id) : null;
 }
 
@@ -81,7 +81,8 @@ test('starts no end-to-end run before a release, and none while the released com
 
   const released = await setup.release();
   const first = await scheduleAndFinish(setup, Date.now());
-  assert.equal(first.kind, 'e2e');
+  assert.equal(first.kind, 'job');
+  assert.equal(first.job, 'e2e');
   assert.equal(first.trigger, 'schedule');
   assert.equal(first.sha, released.sha);
   assert.deepEqual(first.steps.map((it) => it.name), ['Checkout', 'End-to-end']);
@@ -109,15 +110,15 @@ test('a regression opens exactly one ticket for main; a test that failed before 
   setup.prepareResults(true);
   await setup.release();
   const green = await scheduleAndFinish(setup, nextHour());
-  assert.deepEqual(green.e2e, { passed: 1, failed: 1, regressions: [], failing: ['Scenario B'], tickets: [] });
+  assert.deepEqual(green.summary, { passed: 1, failed: 1, regressions: [], failing: ['Scenario B'], tickets: [] });
 
   setup.prepareResults(false);
   await setup.release();
   const red = await scheduleAndFinish(setup, nextHour());
-  assert.equal(red.e2e.regressions.length, 1);
-  assert.equal(red.e2e.regressions[0].name, 'Scenario A');
-  assert.deepEqual(red.e2e.failing, ['Scenario B']);
-  assert.deepEqual(red.e2e.tickets, [{ test: 'Scenario A', id: 101, isExisting: false }]);
+  assert.equal(red.summary.regressions.length, 1);
+  assert.equal(red.summary.regressions[0].name, 'Scenario A');
+  assert.deepEqual(red.summary.failing, ['Scenario B']);
+  assert.deepEqual(red.summary.tickets, [{ test: 'Scenario A', id: 101, isExisting: false }]);
   assert.equal(setup.tickets.length, 1);
   assert.match(setup.tickets[0], /^E2E: Scenario A\nkind: bug · p1 · agent: main · source: ci\nlabels: e2e\ndedupe_key: e2e-scenario-a\n/);
   assert.match(setup.tickets[0], new RegExp(`passed on CI run #${green.id} \\(\\w{7}\\) and fails on CI run #${red.id} \\(\\w{7}\\): https://ci.local/#/runs/${red.id}`));
@@ -125,8 +126,8 @@ test('a regression opens exactly one ticket for main; a test that failed before 
 
   await setup.release();
   const stillRed = await scheduleAndFinish(setup, nextHour());
-  assert.deepEqual(stillRed.e2e.regressions, []);
-  assert.deepEqual(stillRed.e2e.failing, ['Scenario A', 'Scenario B']);
+  assert.deepEqual(stillRed.summary.regressions, []);
+  assert.deepEqual(stillRed.summary.failing, ['Scenario A', 'Scenario B']);
   assert.equal(setup.tickets.length, 1);
 });
 

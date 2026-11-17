@@ -13,6 +13,7 @@
     "url": "http://127.0.0.1:7700",
     "tokenFile": "~/.config/opsbuf-issues/token"
   },
+  "apiTokenFile": "~/.config/opsbuf-issues/token",
   "projects": [
     {
       "id": "opsbuf-app",
@@ -59,14 +60,19 @@
           "run": "bash apps/testing/scripts/release.sh"
         }
       ],
-      "e2e": {
-        "name": "End-to-end",
-        "every": "1h",
-        "run": "bash apps/testing/scripts/e2e.sh",
-        "report": {
-          "type": "junit",
-          "file": "e2e.xml",
-          "title": "End-to-end"
+      "jobs": {
+        "e2e": {
+          "name": "End-to-end",
+          "run": "bash apps/testing/scripts/e2e.sh",
+          "params": [
+            "tests"
+          ],
+          "report": {
+            "type": "junit",
+            "file": "e2e.xml",
+            "title": "End-to-end"
+          },
+          "every": "1h"
         }
       }
     },
