@@ -2,7 +2,9 @@
 const page = document.getElementById('page');
 const LIST_REFRESH_MS = 3000;
 const RUN_REFRESH_MS = 1500;
-const FINISHED = new Set(['passed', 'failed', 'interrupted']);
+const FINISHED = new Set(['passed', 'failed', 'interrupted', 'cancelled']);
+const ACTIVE = new Set(['queued', 'running']);
+const TOKEN_KEY = 'ci-token';
 
 const view = {
   timer: null,
@@ -14,6 +16,8 @@ const view = {
   openSteps: new Set(),
   logs: new Map(),
   projects: [],
+  jobsByProject: new Map(),
+  jobsElement: Object.assign(document.createElement('section'), { className: 'jobs' }),
 };
 
 window.addEventListener('hashchange', showRoute);
@@ -56,8 +60,42 @@ function showRoute() {
 async function fetchJson(url, options) {
   const response = await fetch(url, options);
   const body = await response.json();
-  if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
+  if (!response.ok) throw Object.assign(new Error(body.error ?? `HTTP ${response.status}`), { status: response.status });
   return body;
+}
+
+// starting and cancelling runs code on the mini: the API takes the CI token, asked once and kept in this browser
+async function postWithToken(url, body) {
+  const token = findToken() ?? window.prompt('The CI token (the tracker token on the mini):')?.trim();
+  if (!token) throw new Error('Nothing started: the CI needs its token.');
+  try {
+    const answer = await fetchJson(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    saveToken(token);
+    return answer;
+  } catch (error) {
+    if (error.status === 401) forgetToken();
+    throw error;
+  }
+}
+
+function findToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveToken(token) {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {}
+}
+
+function forgetToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {}
 }
 
 async function loadBranches() {
@@ -84,7 +122,9 @@ async function startRun(event) {
 
 async function refreshList() {
   try {
-    renderList(await fetchJson('/api/runs'));
+    const runs = await fetchJson('/api/runs');
+    // a re-render would take the focus from a job's param being typed
+    if (!view.jobsElement.contains(document.activeElement)) renderList(runs);
   } catch (error) {
     page.innerHTML = `<p class="empty">The CI does not answer: ${escape(error.message)}</p>`;
   }
@@ -100,18 +140,67 @@ function renderList(allRuns) {
       ${view.projects.map((it) => `<a href="#/?project=${encodeURIComponent(it.id)}" class="${filter === it.id ? 'on' : ''}">${escape(it.name)}<span>${allRuns.filter((run) => run.project === it.id).length}</span></a>`).join('')}
     </nav>`;
   if (!runs.length) {
-    page.innerHTML = `${tabs}<section class="hero"><h1>No runs yet</h1><p>Push to the <code>ci</code> remote, or pick a project and a branch and press <b>Run</b>.</p></section>`;
+    page.innerHTML = `${tabs}<div id="jobs-slot"></div><section class="hero"><h1>No runs yet</h1><p>Push to the <code>ci</code> remote, or pick a project and a branch and press <b>Run</b>.</p></section>`;
+    placeJobs(filter);
     return;
   }
-  const finished = runs.filter((it) => FINISHED.has(it.status));
+  const finished = runs.filter((it) => FINISHED.has(it.status) && it.status !== 'cancelled');
   const passRate = finished.length ? Math.round((100 * finished.filter((it) => it.status === 'passed').length) / finished.length) : null;
-  page.innerHTML = `${tabs}
+  page.innerHTML = `${tabs}<div id="jobs-slot"></div>
     <section class="overview">
       <div class="stat"><span class="label">Last run</span>${statusBadge(runs[0].status)}</div>
       <div class="stat"><span class="label">Passing</span><b>${passRate === null ? '–' : `${passRate}%`}</b><span class="hint">of the last ${finished.length}</span></div>
       <div class="stat wide"><span class="label">History</span><div class="history">${[...runs].slice(0, 40).reverse().map(historyCell).join('')}</div></div>
     </section>
     <section class="runs">${runs.map(runRow).join('')}</section>`;
+  placeJobs(filter);
+}
+
+// ── jobs ──
+
+// the jobs panel is one element kept across the list's refreshes, so a param being typed stays
+function placeJobs(projectId) {
+  document.getElementById('jobs-slot').replaceWith(view.jobsElement);
+  if (view.jobsElement.dataset.project === (projectId ?? '')) return;
+  view.jobsElement.dataset.project = projectId ?? '';
+  view.jobsElement.innerHTML = '';
+  if (projectId) void loadJobs(projectId);
+}
+
+async function loadJobs(projectId) {
+  const jobs = view.jobsByProject.get(projectId) ?? (await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/jobs`).catch(() => []));
+  view.jobsByProject.set(projectId, jobs);
+  if (view.jobsElement.dataset.project !== projectId) return;
+  view.jobsElement.innerHTML = jobs.length ? `<h2>Jobs</h2>${jobs.map((it) => jobRow(projectId, it)).join('')}` : '';
+  for (const form of view.jobsElement.querySelectorAll('form')) form.addEventListener('submit', startJobFromForm);
+}
+
+function jobRow(projectId, job) {
+  const params = job.params.map((name) => `<label class="param"><span>${escape(name)}</span><input name="${escape(name)}" autocomplete="off" spellcheck="false"></label>`).join('');
+  return `
+    <form class="job" data-project="${escape(projectId)}" data-job="${escape(job.key)}">
+      <span class="job-name">${escape(job.name)}</span>
+      ${job.every ? `<span class="dim">every ${escape(job.every)} after a release</span>` : ''}
+      <span class="grow"></span>
+      ${params}
+      <button type="submit" class="ghost">Run job</button>
+    </form>`;
+}
+
+async function startJobFromForm(event) {
+  event.preventDefault();
+  const form = event.target;
+  const params = Object.fromEntries([...form.querySelectorAll('input')].map((it) => [it.name, it.value.trim()]));
+  await startJob({ project: form.dataset.project, job: form.dataset.job, params });
+}
+
+async function startJob({ project, job, params, sha }) {
+  try {
+    const created = await postWithToken(`/api/projects/${encodeURIComponent(project)}/jobs/${encodeURIComponent(job)}`, { params, sha, trigger: 'web' });
+    location.hash = `#/runs/${created.id}`;
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 function historyCell(run) {
@@ -125,7 +214,7 @@ function runRow(run) {
       <span class="id">#${run.id}</span>
       <span class="what">
         <span class="subject">${escape(run.commit?.subject ?? run.sha.slice(0, 10))}</span>
-        <span class="meta">${projectChip(run.project)}${branchChip(run.branch)}${outcomeChip(run)}<code>${run.sha.slice(0, 7)}</code>${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}<span>${escape(run.trigger)}</span></span>
+        <span class="meta">${projectChip(run.project)}${jobChip(run)}${branchChip(run.branch)}${outcomeChip(run)}<code>${run.sha.slice(0, 7)}</code>${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}<span>${escape(run.trigger)}</span></span>
       </span>
       ${testBar(run.tests, run.artifacts)}
       <span class="when"><span>${formatDuration(run.ms ?? runningFor(run))}</span><span class="dim">${formatAgo(run.startedAt ?? run.queuedAt)}</span></span>
@@ -192,35 +281,58 @@ function renderRunHead(run) {
   document.getElementById('run-head').innerHTML = `
     <div class="title">${statusIcon(run.status, 22)}<h1>${escape(run.commit?.subject ?? `Run #${run.id}`)}</h1></div>
     <div class="meta">
-      <span>#${run.id}</span>${projectChip(run.project)}${branchChip(run.branch)}${outcomeChip(run)}<code title="${run.sha}">${run.sha.slice(0, 10)}</code>
+      <span>#${run.id}</span>${projectChip(run.project)}${jobChip(run)}${branchChip(run.branch)}${outcomeChip(run)}<code title="${run.sha}">${run.sha.slice(0, 10)}</code>
       ${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}
       <span>${escape(run.trigger)}</span>
       <span>${run.startedAt ? `started ${formatAgo(run.startedAt)}` : 'waiting in the queue'}</span>
       <span class="grow"></span>
       ${FINISHED.has(run.status) ? `<button type="button" class="ghost" id="rerun">Run again</button>` : ''}
+      ${ACTIVE.has(run.status) ? `<button type="button" class="ghost" id="cancel">Cancel</button>` : ''}
     </div>
     ${run.error ? `<p class="run-error">The CI failed on its own: ${escape(run.error)}</p>` : ''}
-    ${run.e2e ? `<p class="e2e-summary">${describeEndToEnd(run.e2e)}</p>` : ''}`;
+    ${findJobSummary(run) ? `<p class="e2e-summary">${describeJobSummary(run.steps.at(-1).name, findJobSummary(run))}</p>` : ''}`;
   document.getElementById('rerun')?.addEventListener('click', () => rerun(run));
+  document.getElementById('cancel')?.addEventListener('click', () => cancelRun(run));
 }
 
-function describeEndToEnd({ passed, failed, regressions, failing, tickets }) {
+// end-to-end runs from before jobs kept their summary as "e2e"
+function findJobSummary(run) {
+  return run.summary ?? run.e2e;
+}
+
+function describeJobSummary(title, { passed, failed, regressions, failing, tickets }) {
   const ticketOf = (name) => tickets.find((it) => it.test === name);
   const named = (name) => escape(name) + (ticketOf(name) ? ` (#${ticketOf(name).id})` : '');
   return [
-    `End-to-end: ${passed} passed, ${failed} failed.`,
+    `${escape(title)}: ${passed} passed, ${failed} failed.`,
     regressions.length ? `<strong>New failures:</strong> ${regressions.map((it) => named(it.name)).join(', ')}.` : '',
     failing.length ? `Failing before too: ${failing.map(escape).join(', ')}.` : '',
   ].filter(Boolean).join(' ');
 }
 
 async function rerun(run) {
+  const job = findJobKey(run);
+  if (job) return startJob({ project: run.project, job, params: run.params ?? {}, sha: run.sha });
   try {
-    const created = await fetchJson('/api/runs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: run.project, branch: run.branch, sha: run.sha, kind: run.kind }) });
+    const created = await fetchJson('/api/runs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: run.project, branch: run.branch, sha: run.sha }) });
     location.hash = `#/runs/${created.id}`;
   } catch (error) {
     showToast(error.message);
   }
+}
+
+async function cancelRun(run) {
+  try {
+    await postWithToken(`/api/runs/${run.id}/cancel`, {});
+    await refreshRun();
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+function findJobKey(run) {
+  if (run.kind === 'job') return run.job;
+  return run.kind === 'e2e' ? 'e2e' : undefined;
 }
 
 function renderSummary(run) {
@@ -425,7 +537,7 @@ function runningFor(run) {
   return run.startedAt && !run.finishedAt ? Date.now() - Date.parse(run.startedAt) : null;
 }
 
-const STATUS_TEXT = { passed: 'Passed', failed: 'Failed', running: 'Running', queued: 'Queued', waiting: 'Waiting', skipped: 'Skipped', interrupted: 'Interrupted' };
+const STATUS_TEXT = { passed: 'Passed', failed: 'Failed', running: 'Running', queued: 'Queued', waiting: 'Waiting', skipped: 'Skipped', interrupted: 'Interrupted', cancelled: 'Cancelled' };
 
 function statusBadge(status) {
   return `<span class="badge ${status}">${statusIcon(status, 14)}${STATUS_TEXT[status] ?? status}</span>`;
@@ -440,6 +552,7 @@ function statusIcon(status, size = 16) {
     waiting: '<circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.6" fill="none" stroke-dasharray="2.4 2.2"/>',
     skipped: '<circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M5.2 8h5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
     interrupted: '<circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M8 4.5v4.2M8 11.2v.3" stroke="var(--icon-ink)" stroke-width="1.8" stroke-linecap="round"/>',
+    cancelled: '<circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M3.6 12.4l8.8-8.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   };
   return `<svg class="icon ${status}" width="${size}" height="${size}" viewBox="0 0 16 16" aria-label="${status}">${shapes[status] ?? shapes.waiting}</svg>`;
 }
@@ -447,6 +560,13 @@ function statusIcon(status, size = 16) {
 function outcomeChip(run) {
   if (run.released) return '<span class="released">released</span>';
   return run.merged ? '<span class="released">merged into main</span>' : '';
+}
+
+function jobChip(run) {
+  const job = findJobKey(run);
+  if (!job) return '';
+  const params = Object.entries(run.params ?? {}).map(([name, value]) => `${name}=${value}`).join(' ');
+  return `<span class="job-chip">${escape(job)}${params ? ` <code>${escape(params)}</code>` : ''}</span>`;
 }
 
 function projectChip(project) {

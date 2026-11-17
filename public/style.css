@@ -67,6 +67,7 @@ h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .icon.running { color: var(--info); animation: spin 0.9s linear infinite; }
 .icon.queued, .icon.waiting { color: var(--fg-dim); }
 .icon.interrupted { color: var(--warn); }
+.icon.cancelled { color: var(--fg-dim); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 7px; border-radius: 20px; background: var(--chip); font-weight: 600; }
@@ -76,6 +77,16 @@ h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .badge.interrupted { background: var(--tint-warn); color: var(--warn); }
 .branch { display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 6px; background: var(--chip); color: var(--fg-muted); font-size: 12px; }
 
+.job-chip { padding: 1px 7px; border-radius: 6px; background: var(--chip); color: var(--info); font-size: 12px; }
+.job-chip code { color: var(--fg-muted); }
+.jobs { margin-bottom: 18px; }
+.jobs h2 { margin-top: 0; }
+.job { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 16px; border: 1px solid var(--border-soft); border-radius: 12px; background: var(--panel); }
+.job + .job { margin-top: 8px; }
+.job-name { font-weight: 600; }
+.param { display: flex; align-items: center; gap: 8px; color: var(--fg-dim); font-size: 12px; }
+.param input { width: 200px; height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--control); outline: none; font-family: var(--mono); font-size: 12px; }
+.param input:focus { border-color: var(--accent); }
 .project { padding: 1px 7px; border-radius: 6px; background: #3a2c26; color: #f0b9a3; font-size: 12px; }
 .project-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
 .project-tabs a { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 8px; color: var(--fg-muted); }
@@ -93,6 +104,7 @@ h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .cell.failed { background: #c55f52; }
 .cell.running { background: var(--info); animation: pulse 1.2s ease-in-out infinite; }
 .cell.interrupted { background: #9c8a4c; }
+.cell.cancelled { background: var(--fg-faint); }
 @keyframes pulse { 50% { opacity: 0.45; } }
 
 .runs { overflow: hidden; border: 1px solid var(--border-soft); border-radius: 12px; background: var(--panel); }
