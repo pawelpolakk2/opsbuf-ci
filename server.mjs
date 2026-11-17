@@ -5,7 +5,9 @@ import fs from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { requireToken } from './lib/api-token.mjs';
 import { Store } from './lib/store.mjs';
+import { listJobs } from './lib/jobs.mjs';
 import { Runner } from './lib/runner.mjs';
 import { Tracker } from './lib/tracker.mjs';
 
@@ -22,9 +24,9 @@ await fs.mkdir(dataDir, { recursive: true });
 const runner = new Runner({ store, config, dataDir, tracker: Tracker.fromConfig(config), publicUrl });
 await runner.assignProjectToOldRuns();
 await runner.markInterruptedRuns();
-// end-to-end runs start on their own schedule, only when a project released something new
+// jobs with an "every" start on their own, only when their project released something new
 const SCHEDULE_CHECK_MS = 60_000;
-setInterval(() => runner.scheduleEndToEnd().catch((error) => console.error('end-to-end schedule:', error.message)), SCHEDULE_CHECK_MS).unref();
+setInterval(() => runner.scheduleJobs().catch((error) => console.error('job schedule:', error.message)), SCHEDULE_CHECK_MS).unref();
 
 const routes = [
   ['GET', /^\/api\/health$/, () => ({ status: 'ok', projects: config.projects.map((it) => it.id), isBusy: runner.isBusy, queued: runner.queue.length })],
@@ -33,6 +35,9 @@ const routes = [
   ['GET', /^\/api\/runs\/(\d+)$/, (request, [id]) => requireRun(id)],
   ['GET', /^\/api\/branches$/, (request, ignored, url) => runner.listBranches(url.searchParams.get('project'))],
   ['POST', /^\/api\/runs$/, async (request) => enqueueFrom(await readJson(request))],
+  ['GET', /^\/api\/projects\/([\w.-]+)\/jobs$/, (request, [project]) => listJobs(runner.requireProject(project))],
+  ['POST', /^\/api\/projects\/([\w.-]+)\/jobs\/([\w.-]+)$/, async (request, [project, job]) => startJobFrom(request, project, job)],
+  ['POST', /^\/api\/runs\/(\d+)\/cancel$/, async (request, [id]) => (await requireTokenOf(request), runner.cancel(Number(id)))],
 ];
 
 const server = http.createServer(async (request, response) => {
@@ -66,7 +71,7 @@ async function answerApi(request, response, url) {
       return sendJson(response, method === 'POST' ? 201 : 200, body);
     }
   }
-  sendJson(response, 404, { error: `No ${request.method} ${url.pathname}. The API: GET /api/runs, /api/runs/12, POST /api/runs {"project": "opsbuf-app", "branch": "main"}.` });
+  sendJson(response, 404, { error: `No ${request.method} ${url.pathname}. The API: GET /api/runs, /api/runs/12, POST /api/runs {"project": "opsbuf-app", "branch": "main"}, GET /api/projects/opsbuf-app/jobs, POST /api/projects/opsbuf-app/jobs/e2e {"params": {...}} and POST /api/runs/12/cancel with the CI token.` });
 }
 
 function refuseOtherSites(request) {
@@ -85,7 +90,19 @@ function requireRun(id) {
 function enqueueFrom(body) {
   const readText = (key) => (typeof body[key] === 'string' && body[key] ? body[key] : undefined);
   const sha = /^[0-9a-f]{7,40}$/.test(readText('sha') ?? '') ? body.sha : null;
-  return runner.enqueue({ project: readText('project'), branch: readText('branch'), sha, trigger: readText('trigger') ?? 'manual', kind: readText('kind') === 'e2e' ? 'e2e' : undefined });
+  return runner.enqueue({ project: readText('project'), branch: readText('branch'), sha, trigger: readText('trigger') ?? 'manual' });
+}
+
+// a job runs code on the mini, so starting one takes the token
+async function startJobFrom(request, project, job) {
+  await requireTokenOf(request);
+  const body = await readJson(request);
+  if (body.sha !== undefined && !/^[0-9a-f]{7,40}$/.test(String(body.sha))) throw Object.assign(new Error('"sha" is a commit hash.'), { status: 400 });
+  return runner.startJob({ project, job, params: body.params ?? {}, sha: body.sha, trigger: body.trigger === 'web' ? 'web' : 'api' });
+}
+
+function requireTokenOf(request) {
+  return requireToken(request.headers.authorization, config.apiTokenFile);
 }
 
 function toSummary(run) {
