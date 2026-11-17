@@ -81,7 +81,9 @@ lane, so two full suites never fight. `/api/health` shows what runs and waits in
 `lane`. They keep out of each other's way:
 
 - a job checks out into `data/workspaces/<project>-jobs`, never the build's workspace;
-- every run gets a `TMPDIR` of its own, removed when it ends;
+- every run gets a `TMPDIR` of its own, removed when it ends; first the CI stops what the run left running: in the job
+  lane the step's process group, in both lanes every process whose command line names that folder (Chrome on its
+  profile, the opsbuf core on its project copy). At start it does the same for folders a crash left behind;
 - a job runs from its own copy of what it uses: opsbuf-app's `e2e.sh` first clones the released testing app (APFS,
   seconds) into its `TMPDIR`, so a release of its project next to it can replace those files at any time.
 

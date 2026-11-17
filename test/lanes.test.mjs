@@ -158,3 +158,22 @@ test('removes the run folders a crash left in the temp folder, and nothing else'
   await setup.runner.removeLeftoverTmpDirs(root);
   assert.deepEqual(fs.readdirSync(root), ['someone-else']);
 });
+
+test('a process a run left running is stopped when the run ends, also one outside its process group', async () => {
+  const setup = await createSetup();
+  setup.runner.config.projects[0].jobs.leaky = { name: 'Leaky', run: `echo "$TMPDIR" > "$CI_ARTIFACTS/tmp.txt"; (perl -MPOSIX -e 'setsid(); sleep 60' "$TMPDIR/leftover" >/dev/null 2>&1 &); sleep 0.2` };
+  const leaky = await waitFor(setup.store, (await setup.runner.startJob({ project: 'demo', job: 'leaky', sha: setup.sha })).id, FINISHED);
+  assert.equal(leaky.status, 'passed');
+  const tmpName = path.basename(readArtifact(setup.store, leaky, 'tmp.txt'));
+  for (let attempt = 0; attempt < 60 && hasProcess(tmpName); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(hasProcess(tmpName), false);
+});
+
+function hasProcess(pattern) {
+  try {
+    execFileSync('pgrep', ['-f', pattern]);
+    return true;
+  } catch {
+    return false;
+  }
+}
