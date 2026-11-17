@@ -24,6 +24,7 @@ await fs.mkdir(dataDir, { recursive: true });
 const runner = new Runner({ store, config, dataDir, tracker: Tracker.fromConfig(config), publicUrl });
 await runner.assignProjectToOldRuns();
 await runner.markInterruptedRuns();
+await runner.stopLeftoverProcesses();
 await runner.removeLeftoverTmpDirs();
 // this process runs the newest code, so a restart a release asked for is done, even when the old one crashed before it
 await fs.rm(path.join(dataDir, 'restart-requested'), { force: true });
