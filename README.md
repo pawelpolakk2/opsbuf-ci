@@ -43,6 +43,7 @@ ships nothing. The run then shows **released**. Each project releases itself wit
 | Project        | Release                          | Where                              |
 |----------------|----------------------------------|------------------------------------|
 | opsbuf-app     | `scripts/ci-package.sh`          | a zip of opsbuf.app on the run's page |
+| opsbuf-app     | `apps/testing/scripts/release.sh` | https://testing.local              |
 | opsbuf-web     | `deploy/release.sh`              | https://opsbuf.local               |
 | opsbuf-issues  | `scripts/release.sh`             | https://issues.local               |
 | opsbuf-ci      | `scripts/release.sh`             | https://ci.local                   |

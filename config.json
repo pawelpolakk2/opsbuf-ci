@@ -47,6 +47,10 @@
         {
           "name": "Package",
           "run": "bash scripts/ci-package.sh"
+        },
+        {
+          "name": "Testing app",
+          "run": "bash apps/testing/scripts/release.sh"
         }
       ]
     },
