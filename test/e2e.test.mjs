@@ -131,6 +131,6 @@ test('a regression opens exactly one ticket for main; a test that failed before 
 });
 
 test('the summary of a first end-to-end run has nothing to compare with', () => {
-  const run = { steps: [{ report: { suites: [{ name: 'test', tests: [{ name: 'A', status: 'failed', message: 'x' }] }] } }] };
+  const run = { steps: [{ report: { suites: [{ name: 'test', tests: [{ name: 'A', status: 'failed', message: 'x' }, { name: '', status: 'failed', message: 'the file' }] }] } }] };
   assert.deepEqual(summarize(undefined, run), { passed: 0, failed: 1, regressions: [], failing: ['A'] });
 });
