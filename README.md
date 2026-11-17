@@ -54,18 +54,42 @@ A step may leave files in `$CI_ARTIFACTS`; the run's page offers them for downlo
 `/api/projects/<project>/latest` always points at the newest released file. Only the newest 10 runs (`keepArtifacts`)
 keep their files.
 
-## End-to-end runs on a schedule
+## Jobs
 
-A project with `"e2e"` in `config.json` (`every`, `run`, `report`) gets end-to-end runs of their own: the trigger is
-`schedule` and the run has only Checkout and that step. Every minute the CI checks: a run starts when the project's last
-released commit differs from the last end-to-end run's, at most once per `every`, and never while one waits or runs.
-Nothing released, nothing runs. It follows the released commit, not main, because the tests run the build the release
-installed. opsbuf-app runs `apps/testing/scripts/e2e.sh`: the testing scenarios, headless, against https://testing.local's
-build.
+A job is a named task of a project in `config.json`, started on demand, not by a push:
 
-After the run its tests are compared with the last end-to-end run. A test that passed then and fails now is a
-regression: one ticket for main (label `e2e`, one `dedupe_key` per test, so an open one is not opened again) with the
-failure and both runs. Tests that failed before too are only listed. The run page shows the summary.
+```json
+"jobs": { "e2e": { "name": "End-to-end", "run": "bash apps/testing/scripts/e2e.sh", "params": ["tests"],
+                   "report": { "type": "junit", "file": "e2e.xml", "title": "End-to-end" }, "every": "1h" } }
+```
+
+A job run has Checkout and the job's step. It runs on the commit it was given, by default the last released one. Each
+declared param reaches the step as `CI_PARAM_<NAME>` (`tests` -> `CI_PARAM_TESTS`); a param it does not declare is
+refused. The CI runs one run at a time, so a second start waits in the queue. Cancel takes a waiting run out of the
+queue, or stops the running step's process group; the run ends as **cancelled**.
+
+Start a job from a project's tab on the page (**Run job**, with its params), or from the API. Starting and cancelling
+need the token in `apiTokenFile` (on the mini the tracker token); without that file the API refuses them all.
+
+```bash
+curl -s https://ci.local/api/projects/opsbuf-app/jobs
+curl -s -X POST https://ci.local/api/projects/opsbuf-app/jobs/e2e -H "Authorization: Bearer $(cat ~/.config/opsbuf-issues/token)" -d '{"params": {"tests": "T-12,T-40"}}'
+curl -s https://ci.local/api/runs/12
+curl -s -X POST https://ci.local/api/runs/12/cancel -H "Authorization: Bearer $(cat ~/.config/opsbuf-issues/token)"
+```
+
+### On a schedule
+
+A job with `every` also starts by itself, with the trigger `schedule`. Every minute the CI checks: a run starts when the
+project's last released commit differs from the job's last scheduled run, at most once per `every`, and never while one
+of the job waits or runs. Nothing released, nothing runs. It follows the released commit, not main, because the tests
+run the build the release installed. opsbuf-app's `e2e` job runs `apps/testing/scripts/e2e.sh`: the testing scenarios,
+headless, against https://testing.local's build; `tests` (T-12 or scenario ids) runs only those.
+
+A scheduled run's tests are compared with the job's last scheduled run. A test that passed then and fails now is a
+regression: one ticket for main (label = the job, one `dedupe_key` per test, so an open one is not opened again) with
+the failure and both runs. Tests that failed before too are only listed. The run page shows the summary. A run started
+by hand only shows its summary and opens no ticket: it may test anything, on any commit.
 
 ## Ticket branches merge themselves
 
