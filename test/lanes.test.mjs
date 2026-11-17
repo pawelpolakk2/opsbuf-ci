@@ -28,7 +28,7 @@ async function createSetup() {
     steps: [{ name: 'Tests', run: 'sleep 0.3' }],
     release: [{ name: 'Release', run: 'true' }],
     jobs: {
-      e2e: { name: 'End-to-end', every: '1h', run: `pwd > "$CI_ARTIFACTS/pwd.txt"; echo "$TMPDIR" > "$CI_ARTIFACTS/tmp.txt"; until [ -f ${jobGate} ]; do sleep 0.05; done` },
+      e2e: { name: 'End-to-end', every: '1h', run: `pwd > "$CI_ARTIFACTS/pwd.txt"; echo "$TMPDIR" > "$CI_ARTIFACTS/tmp.txt"; until [ -f ${jobGate} ] || [ $SECONDS -gt 20 ]; do sleep 0.05; done` },
     },
   };
   const dataDir = path.join(root, 'data');
@@ -57,6 +57,8 @@ test('a build runs and ends while a job runs next to it', async () => {
   const build = await setup.runner.enqueue({ branch: 'other' });
   assert.equal((await waitFor(setup.store, build.id, FINISHED)).status, 'passed');
   assert.equal(setup.store.find(job.id).status, 'running');
+  // the lane lets go of a run once its TMPDIR is gone, a moment after the run shows as ended
+  for (let attempt = 0; attempt < 40 && setup.runner.describeLanes().build.running; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.deepEqual(setup.runner.describeLanes(), { build: { running: null, queued: [] }, job: { running: job.id, queued: [] } });
   setup.openJobGate();
   assert.equal((await waitFor(setup.store, job.id, FINISHED)).status, 'passed');
@@ -136,4 +138,23 @@ test('a restart waits for the builds, then cancels the jobs, so none stays runni
   for (let attempt = 0; attempt < 40 && !setup.exits.length; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(setup.exits.length, 1);
   assert.equal(fs.existsSync(path.join(setup.dataDir, 'restart-requested')), false);
+});
+
+test('a step whose process still writes to its TMPDIR after it ended does not stop the lane', async () => {
+  const setup = await createSetup();
+  setup.runner.config.projects[0].jobs.late = { name: 'Late', run: 'end=$((SECONDS + 2)); (while [ $SECONDS -lt $end ]; do mkdir -p "$TMPDIR/late/$RANDOM" 2>/dev/null; done) >/dev/null 2>&1 & sleep 0.2' };
+  const late = await setup.runner.startJob({ project: 'demo', job: 'late', sha: setup.sha });
+  const next = await setup.runner.startJob({ project: 'demo', job: 'late', sha: setup.sha });
+  assert.equal((await waitFor(setup.store, late.id, FINISHED)).status, 'passed');
+  assert.equal((await waitFor(setup.store, next.id, FINISHED)).status, 'passed');
+});
+
+test('removes the run folders a crash left in the temp folder, and nothing else', async () => {
+  const setup = await createSetup();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opsbuf-ci-sweep-'));
+  fs.mkdirSync(path.join(root, 'opsbuf-ci-run-224-abc', 'opsbuf-release'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'opsbuf-ci-run-224-abc', 'opsbuf-release', 'file'), 'x');
+  fs.mkdirSync(path.join(root, 'someone-else'));
+  await setup.runner.removeLeftoverTmpDirs(root);
+  assert.deepEqual(fs.readdirSync(root), ['someone-else']);
 });

@@ -24,6 +24,7 @@ await fs.mkdir(dataDir, { recursive: true });
 const runner = new Runner({ store, config, dataDir, tracker: Tracker.fromConfig(config), publicUrl });
 await runner.assignProjectToOldRuns();
 await runner.markInterruptedRuns();
+await runner.removeLeftoverTmpDirs();
 // jobs with an "every" start on their own, only when their project released something new
 const SCHEDULE_CHECK_MS = 60_000;
 setInterval(() => runner.scheduleJobs().catch((error) => console.error('job schedule:', error.message)), SCHEDULE_CHECK_MS).unref();
