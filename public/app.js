@@ -125,7 +125,7 @@ function runRow(run) {
       <span class="id">#${run.id}</span>
       <span class="what">
         <span class="subject">${escape(run.commit?.subject ?? run.sha.slice(0, 10))}</span>
-        <span class="meta">${projectChip(run.project)}${branchChip(run.branch)}${releasedChip(run)}<code>${run.sha.slice(0, 7)}</code>${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}<span>${escape(run.trigger)}</span></span>
+        <span class="meta">${projectChip(run.project)}${branchChip(run.branch)}${outcomeChip(run)}<code>${run.sha.slice(0, 7)}</code>${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}<span>${escape(run.trigger)}</span></span>
       </span>
       ${testBar(run.tests, run.artifacts)}
       <span class="when"><span>${formatDuration(run.ms ?? runningFor(run))}</span><span class="dim">${formatAgo(run.startedAt ?? run.queuedAt)}</span></span>
@@ -192,7 +192,7 @@ function renderRunHead(run) {
   document.getElementById('run-head').innerHTML = `
     <div class="title">${statusIcon(run.status, 22)}<h1>${escape(run.commit?.subject ?? `Run #${run.id}`)}</h1></div>
     <div class="meta">
-      <span>#${run.id}</span>${projectChip(run.project)}${branchChip(run.branch)}${releasedChip(run)}<code title="${run.sha}">${run.sha.slice(0, 10)}</code>
+      <span>#${run.id}</span>${projectChip(run.project)}${branchChip(run.branch)}${outcomeChip(run)}<code title="${run.sha}">${run.sha.slice(0, 10)}</code>
       ${run.commit ? `<span>${escape(run.commit.author)}</span>` : ''}
       <span>${escape(run.trigger)}</span>
       <span>${run.startedAt ? `started ${formatAgo(run.startedAt)}` : 'waiting in the queue'}</span>
@@ -433,8 +433,9 @@ function statusIcon(status, size = 16) {
   return `<svg class="icon ${status}" width="${size}" height="${size}" viewBox="0 0 16 16" aria-label="${status}">${shapes[status] ?? shapes.waiting}</svg>`;
 }
 
-function releasedChip(run) {
-  return run.released ? '<span class="released">released</span>' : '';
+function outcomeChip(run) {
+  if (run.released) return '<span class="released">released</span>';
+  return run.merged ? '<span class="released">merged into main</span>' : '';
 }
 
 function projectChip(project) {
