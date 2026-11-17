@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# A push to a CI repo starts a run for every branch it moved; a deleted branch starts nothing.
+# A push to a CI repo starts a run for every branch it moved; a deleted branch starts nothing, and a commit that
+# already builds starts nothing either.
 # The repo's folder names the project: repos/opsbuf-web.git builds opsbuf-web.
 project=$(basename "$(pwd)" .git)
 while read -r old new ref; do
@@ -8,6 +9,7 @@ while read -r old new ref; do
   answer=$(curl -s -X POST http://127.0.0.1:7460/api/runs -H 'content-type: application/json' \
     -d "{\"project\": \"$project\", \"branch\": \"$branch\", \"sha\": \"$new\", \"trigger\": \"push\"}")
   id=$(sed -n 's/.*"id":\([0-9]*\).*/\1/p' <<< "$answer")
-  if [[ -n "$id" ]]; then echo "CI: run #$id for $project $branch → https://ci.local/#/runs/$id"
-  else echo "The CI did not take the push: $answer"; fi
+  if [[ -z "$id" ]]; then echo "The CI did not take the push: $answer"
+  elif [[ "$answer" == *'"isReused":true'* ]]; then echo "CI: $project $branch is built once, in run #$id → https://ci.local/#/runs/$id"
+  else echo "CI: run #$id for $project $branch → https://ci.local/#/runs/$id"; fi
 done

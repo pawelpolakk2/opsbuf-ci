@@ -17,6 +17,11 @@ git remote set-url --add --push origin git@github.com:pawelpolakk2/<project>.git
 git remote set-url --add --push origin macmini@macmini:Apps/opsbuf-ci/repos/<project>.git
 ```
 
+A pushed commit builds once. A push of a commit that already has a build (queued, running or passed) starts nothing:
+the hook names that run. A push to main of a commit that only has a branch build takes its place, so main still
+releases: the branch run ends cancelled, with `replacedBy`. A branch run in its merge step stays, since that push came
+from it. **Run** and jobs always start a run.
+
 The page also has **Run** for any project and branch, and **Run again** on a run.
 
 ## Projects

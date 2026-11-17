@@ -129,6 +129,8 @@ test('without autoMerge a ticket branch is only tested: no merge, and no note wh
   const mainBefore = readMain(repos.repo);
 
   const green = await runBranch(repos, 'true', false);
+  commit(repos.git, 'c.txt', 'three\n', 'add c');
+  repos.git('push', '-q', 'origin', BRANCH);
   const red = await runBranch(repos, 'exit 1', false);
 
   assert.deepEqual(green.run.steps.map((it) => [it.name, it.status]), [['Checkout', 'passed'], ['Tests', 'passed']]);

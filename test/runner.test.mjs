@@ -97,3 +97,67 @@ test('keeps the files of the newest runs only', async () => {
   assert.deepEqual(store.list().map((it) => [it.id, it.artifacts.length]), [[3, 1], [2, 1], [1, 0]]);
   assert.equal(fs.existsSync(path.join(store.artifactsDir(1), 'app.zip')), false);
 });
+
+async function createPushRunner(testRun = 'true') {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opsbuf-ci-'));
+  const repo = createRepo(root);
+  const git = (...args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_NAME: 'Test', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 'Test', GIT_COMMITTER_EMAIL: 't@t' } });
+  git('branch', 'fix/PTX-1-demo');
+  git('checkout', '-q', '-b', 'other');
+  git('commit', '-q', '--allow-empty', '-m', 'another commit');
+  git('checkout', '-q', 'main');
+  const sha = git('rev-parse', 'HEAD').trim();
+  const project = { id: 'demo', repo, steps: [{ name: 'Tests', run: testRun }], release: [{ name: 'Release', run: 'true' }] };
+  const store = new Store(path.join(root, 'data'), 10);
+  await store.init();
+  return { store, runner: new Runner({ store, config: { projects: [project] }, dataDir: path.join(root, 'data') }), sha, git };
+}
+
+test('a main push of a commit takes the place of its queued branch build', async () => {
+  const { store, runner, sha } = await createPushRunner('sleep 5');
+  const blocker = await runner.enqueue({ branch: 'other', trigger: 'manual' });
+  const queuedBranch = await runner.enqueue({ branch: 'fix/PTX-1-demo', sha, trigger: 'push' });
+  const mainRun = await runner.enqueue({ branch: 'main', sha, trigger: 'push' });
+
+  assert.equal(store.find(queuedBranch.id).status, 'cancelled');
+  assert.equal(store.find(queuedBranch.id).replacedBy, mainRun.id);
+  assert.equal(mainRun.isReused, undefined);
+  assert.deepEqual(runner.queue, [mainRun.id]);
+  await runner.cancel(blocker.id);
+  await runner.cancel(mainRun.id);
+});
+
+test('a main push stops a running branch build of the same commit and releases it itself', async () => {
+  const { store, runner, sha } = await createPushRunner('sleep 5');
+  const branchRun = await runner.enqueue({ branch: 'fix/PTX-1-demo', sha, trigger: 'push' });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  assert.equal(store.find(branchRun.id).status, 'running');
+  runner.config.projects[0].steps = [{ name: 'Tests', run: 'true' }];
+
+  const mainRun = await runner.enqueue({ branch: 'main', sha, trigger: 'push' });
+  const finished = await waitUntilFinished(store, mainRun.id);
+
+  assert.equal(store.find(branchRun.id).status, 'cancelled');
+  assert.equal(store.find(branchRun.id).replacedBy, mainRun.id);
+  assert.equal(finished.released, true);
+});
+
+test('a commit pushed twice, or to a branch after main, builds once; a new commit builds', async () => {
+  const { store, runner, sha, git } = await createPushRunner();
+  const first = await runner.enqueue({ branch: 'main', sha, trigger: 'push' });
+  const again = await runner.enqueue({ branch: 'main', sha, trigger: 'push' });
+  await waitUntilFinished(store, first.id);
+  const branchAfterMain = await runner.enqueue({ branch: 'fix/PTX-1-demo', sha, trigger: 'push' });
+  const manual = await runner.enqueue({ branch: 'main', sha, trigger: 'manual' });
+  git('commit', '-q', '--allow-empty', '-m', 'next');
+  const next = git('rev-parse', 'HEAD').trim();
+  const newCommit = await runner.enqueue({ branch: 'main', sha: next, trigger: 'push' });
+
+  assert.deepEqual([again.id, again.isReused], [first.id, true]);
+  assert.deepEqual([branchAfterMain.id, branchAfterMain.isReused], [first.id, true]);
+  assert.notEqual(manual.id, first.id);
+  assert.notEqual(newCommit.id, first.id);
+  assert.equal(newCommit.isReused, undefined);
+  await waitUntilFinished(store, manual.id);
+  await waitUntilFinished(store, newCommit.id);
+});
