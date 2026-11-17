@@ -56,7 +56,9 @@ keep their files.
 
 ## Ticket branches merge themselves
 
-A branch named `<type>/PTX-<id>-…` or `<type>/OPS-<id>-…` gets one more step after its checks: **Merge into main**
+Off by default: a project turns it on with `"autoMerge": true` in `config.json`; today every project has it off, and
+agents merge their own branches. With it on, a branch named `<type>/PTX-<id>-…` or `<type>/OPS-<id>-…` gets one more
+step after its checks: **Merge into main**
 (`scripts/merge-into-main.sh`). On green it fast-forwards main when it can, else it makes a merge commit; it never
 forces. The push to the CI repo starts main's own run, which releases as above, and the same main goes to the
 project's `mirror` (its GitHub repo). A red check skips the merge; a conflict fails the step and lists the files. Either

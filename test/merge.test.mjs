@@ -36,12 +36,12 @@ function commit(git, file, text, message) {
 
 const readMain = (bareRepo) => execFileSync('git', ['rev-parse', 'refs/heads/main'], { cwd: bareRepo }).toString().trim();
 
-async function runBranch({ root, repo, mirror }, testRun = 'true') {
+async function runBranch({ root, repo, mirror }, testRun = 'true', autoMerge = true) {
   const notes = [];
   const tracker = { addNote: async (id, text) => notes.push({ id, text }) };
   const store = new Store(path.join(root, 'data'), 10);
   await store.init();
-  const config = { projects: [{ id: 'demo', repo, mirror, steps: [{ name: 'Tests', run: testRun }] }] };
+  const config = { projects: [{ id: 'demo', repo, mirror, autoMerge, steps: [{ name: 'Tests', run: testRun }] }] };
   const runner = new Runner({ store, config, dataDir: path.join(root, 'data'), tracker, publicUrl: 'https://ci.local' });
   const created = await runner.enqueue({ branch: BRANCH, trigger: 'push' });
   for (let attempt = 0; attempt < 200; attempt += 1) {
@@ -119,4 +119,21 @@ test('a red ticket branch never merges and tells the ticket which check was red'
   assert.equal(readMain(repos.repo), mainBefore);
   assert.equal(notes.length, 1);
   assert.match(notes[0].text, /^Not merged into main: red at Tests\. CI run #\d+/);
+});
+
+test('without autoMerge a ticket branch is only tested: no merge, and no note when it is red', async () => {
+  const repos = createRepos();
+  repos.git('checkout', '-q', '-b', BRANCH);
+  commit(repos.git, 'b.txt', 'two\n', 'add b');
+  repos.git('push', '-q', 'origin', BRANCH);
+  const mainBefore = readMain(repos.repo);
+
+  const green = await runBranch(repos, 'true', false);
+  const red = await runBranch(repos, 'exit 1', false);
+
+  assert.deepEqual(green.run.steps.map((it) => [it.name, it.status]), [['Checkout', 'passed'], ['Tests', 'passed']]);
+  assert.equal(green.run.merged, false);
+  assert.equal(red.run.status, 'failed');
+  assert.equal(readMain(repos.repo), mainBefore);
+  assert.deepEqual([...green.notes, ...red.notes], []);
 });

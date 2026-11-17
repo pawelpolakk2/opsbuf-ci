@@ -20,6 +20,7 @@
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-app.git",
       "defaultBranch": "main",
       "mirror": "git@github.com:pawelpolakk2/opsbuf-app.git",
+      "autoMerge": false,
       "steps": [
         {
           "name": "Install",
@@ -117,6 +118,7 @@
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-issues.git",
       "defaultBranch": "main",
       "mirror": "git@github.com:pawelpolakk2/opsbuf-issues.git",
+      "autoMerge": false,
       "steps": [
         {
           "name": "Install",
@@ -226,6 +228,7 @@
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",
       "defaultBranch": "main",
       "mirror": "git@github.com:pawelpolakk2/opsbuf-ci.git",
+      "autoMerge": false,
       "steps": [
         {
           "name": "Tests",
