@@ -72,7 +72,8 @@
             "file": "e2e.xml",
             "title": "End-to-end"
           },
-          "every": "1h"
+          "every": "1h",
+          "stopOnRelease": true
         }
       }
     },

@@ -108,7 +108,7 @@ test('cancel takes a waiting run out of the queue and stops a running one', asyn
   const cancelledWaiting = await setup.runner.cancel(waiting.id);
   assert.equal(cancelledWaiting.status, 'cancelled');
   assert.deepEqual(cancelledWaiting.steps.map((it) => it.status), ['skipped', 'skipped']);
-  assert.equal(setup.runner.queue.includes(waiting.id), false);
+  assert.equal(setup.runner.lanes.job.queue.includes(waiting.id), false);
 
   await waitForStep(setup.store, running.id, 'Slow', 'running');
   await setup.runner.cancel(running.id);

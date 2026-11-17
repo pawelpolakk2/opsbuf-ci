@@ -122,7 +122,7 @@ test('a main push of a commit takes the place of its queued branch build', async
   assert.equal(store.find(queuedBranch.id).status, 'cancelled');
   assert.equal(store.find(queuedBranch.id).replacedBy, mainRun.id);
   assert.equal(mainRun.isReused, undefined);
-  assert.deepEqual(runner.queue, [mainRun.id]);
+  assert.deepEqual(runner.lanes.build.queue, [mainRun.id]);
   await runner.cancel(blocker.id);
   await runner.cancel(mainRun.id);
 });

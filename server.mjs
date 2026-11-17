@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { requireToken } from './lib/api-token.mjs';
 import { Store } from './lib/store.mjs';
 import { listJobs } from './lib/jobs.mjs';
-import { Runner } from './lib/runner.mjs';
+import { laneOf, Runner } from './lib/runner.mjs';
 import { Tracker } from './lib/tracker.mjs';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
@@ -29,10 +29,10 @@ const SCHEDULE_CHECK_MS = 60_000;
 setInterval(() => runner.scheduleJobs().catch((error) => console.error('job schedule:', error.message)), SCHEDULE_CHECK_MS).unref();
 
 const routes = [
-  ['GET', /^\/api\/health$/, () => ({ status: 'ok', projects: config.projects.map((it) => it.id), isBusy: runner.isBusy, queued: runner.queue.length })],
+  ['GET', /^\/api\/health$/, () => ({ status: 'ok', projects: config.projects.map((it) => it.id), lanes: runner.describeLanes() })],
   ['GET', /^\/api\/projects$/, () => config.projects.map(({ id, name, defaultBranch }) => ({ id, name: name ?? id, defaultBranch: defaultBranch ?? 'main' }))],
   ['GET', /^\/api\/runs$/, () => store.list().map(toSummary)],
-  ['GET', /^\/api\/runs\/(\d+)$/, (request, [id]) => requireRun(id)],
+  ['GET', /^\/api\/runs\/(\d+)$/, (request, [id]) => withLane(requireRun(id))],
   ['GET', /^\/api\/branches$/, (request, ignored, url) => runner.listBranches(url.searchParams.get('project'))],
   ['POST', /^\/api\/runs$/, async (request) => enqueueFrom(await readJson(request))],
   ['GET', /^\/api\/projects\/([\w.-]+)\/jobs$/, (request, [project]) => listJobs(runner.requireProject(project))],
@@ -105,8 +105,13 @@ function requireTokenOf(request) {
   return requireToken(request.headers.authorization, config.apiTokenFile);
 }
 
+// runs from before the lanes have none stored
+function withLane(run) {
+  return { ...run, lane: laneOf(run) };
+}
+
 function toSummary(run) {
-  return { ...run, steps: run.steps.map(({ report, ...step }) => ({ ...step, counts: report?.counts ?? null })) };
+  return { ...withLane(run), steps: run.steps.map(({ report, ...step }) => ({ ...step, counts: report?.counts ?? null })) };
 }
 
 async function sendLog(response, id, stepIndex, from) {
