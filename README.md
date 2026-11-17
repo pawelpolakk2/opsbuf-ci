@@ -82,8 +82,8 @@ lane, so two full suites never fight. `/api/health` shows what runs and waits in
 
 - a job checks out into `data/workspaces/<project>-jobs`, never the build's workspace;
 - every run gets a `TMPDIR` of its own, removed when it ends;
-- a job builds what it runs in its own workspace (opsbuf-app's `e2e.sh` builds the UI, the testing app and the opsbuf
-  binary there), so a release of its project next to it never touches its files.
+- a job runs from its own copy of what it uses: opsbuf-app's `e2e.sh` first clones the released testing app (APFS,
+  seconds) into its `TMPDIR`, so a release of its project next to it can replace those files at any time.
 
 Start a job from a project's tab on the page (**Run job**, with its params), or from the API. Starting and cancelling
 need the token in `apiTokenFile` (on the mini the tracker token); without that file the API refuses them all.
@@ -100,8 +100,8 @@ curl -s -X POST https://ci.local/api/runs/12/cancel -H "Authorization: Bearer $(
 A job with `every` also starts by itself, with the trigger `schedule`. Every minute the CI checks: a run starts when the
 project's last released commit differs from the job's last scheduled run, at most once per `every`, and never while one
 of the job waits or runs. Nothing released, nothing runs. It follows the released commit, not main, so it tests what
-was released. opsbuf-app's `e2e` job runs `apps/testing/scripts/e2e.sh`: it builds that commit in the job's workspace and
-runs the testing scenarios headless against it; `tests` (T-12 or scenario ids) runs only those.
+was released. opsbuf-app's `e2e` job runs `apps/testing/scripts/e2e.sh`: the testing scenarios, headless, against a copy
+of https://testing.local's build; `tests` (T-12 or scenario ids) runs only those.
 
 A scheduled run's tests are compared with the job's last scheduled run. A test that passed then and fails now is a
 regression: one ticket for main (label = the job, one `dedupe_key` per test, so an open one is not opened again) with
