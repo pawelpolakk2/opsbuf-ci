@@ -9,12 +9,17 @@
     "CARGO_TERM_COLOR": "never",
     "FORCE_COLOR": "0"
   },
+  "tracker": {
+    "url": "http://127.0.0.1:7700",
+    "tokenFile": "~/.config/opsbuf-issues/token"
+  },
   "projects": [
     {
       "id": "opsbuf-app",
       "name": "opsbuf app",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-app.git",
       "defaultBranch": "main",
+      "mirror": "git@github.com:pawelpolakk2/opsbuf-app.git",
       "steps": [
         {
           "name": "Install",
@@ -111,6 +116,7 @@
       "name": "opsbuf issues",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-issues.git",
       "defaultBranch": "main",
+      "mirror": "git@github.com:pawelpolakk2/opsbuf-issues.git",
       "steps": [
         {
           "name": "Install",
@@ -219,6 +225,7 @@
       "name": "CI",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",
       "defaultBranch": "main",
+      "mirror": "git@github.com:pawelpolakk2/opsbuf-ci.git",
       "steps": [
         {
           "name": "Tests",

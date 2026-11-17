@@ -54,6 +54,15 @@ A step may leave files in `$CI_ARTIFACTS`; the run's page offers them for downlo
 `/api/projects/<project>/latest` always points at the newest released file. Only the newest 10 runs (`keepArtifacts`)
 keep their files.
 
+## Ticket branches merge themselves
+
+A branch named `<type>/PTX-<id>-…` or `<type>/OPS-<id>-…` gets one more step after its checks: **Merge into main**
+(`scripts/merge-into-main.sh`). On green it fast-forwards main when it can, else it makes a merge commit; it never
+forces. The push to the CI repo starts main's own run, which releases as above, and the same main goes to the
+project's `mirror` (its GitHub repo). A red check skips the merge; a conflict fails the step and lists the files. Either
+way a `PTX` ticket gets a note from author `ci` with the reason and the run (`tracker` in `config.json`). Other branches
+are only tested.
+
 The CI's own release copies the code and asks for a restart (`data/restart-requested`); the server exits when the queue
 is empty and launchd starts the new code. A new https name for an app: `scripts/add-site.sh <host> <port> <name> <label>`.
 

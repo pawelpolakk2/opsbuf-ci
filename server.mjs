@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './lib/store.mjs';
 import { Runner } from './lib/runner.mjs';
+import { Tracker } from './lib/tracker.mjs';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const config = JSON.parse(await fs.readFile(process.env.OPSBUF_CI_CONFIG || path.join(appDir, 'config.json'), 'utf8'));
@@ -18,7 +19,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const store = new Store(dataDir, config.keepRuns ?? 100);
 await store.init();
 await fs.mkdir(dataDir, { recursive: true });
-const runner = new Runner({ store, config, dataDir });
+const runner = new Runner({ store, config, dataDir, tracker: Tracker.fromConfig(config), publicUrl });
 await runner.assignProjectToOldRuns();
 await runner.markInterruptedRuns();
 
