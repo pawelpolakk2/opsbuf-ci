@@ -54,6 +54,19 @@ A step may leave files in `$CI_ARTIFACTS`; the run's page offers them for downlo
 `/api/projects/<project>/latest` always points at the newest released file. Only the newest 10 runs (`keepArtifacts`)
 keep their files.
 
+## End-to-end runs on a schedule
+
+A project with `"e2e"` in `config.json` (`every`, `run`, `report`) gets end-to-end runs of their own: the trigger is
+`schedule` and the run has only Checkout and that step. Every minute the CI checks: a run starts when the project's last
+released commit differs from the last end-to-end run's, at most once per `every`, and never while one waits or runs.
+Nothing released, nothing runs. It follows the released commit, not main, because the tests run the build the release
+installed. opsbuf-app runs `apps/testing/scripts/e2e.sh`: the testing scenarios, headless, against https://testing.local's
+build.
+
+After the run its tests are compared with the last end-to-end run. A test that passed then and fails now is a
+regression: one ticket for main (label `e2e`, one `dedupe_key` per test, so an open one is not opened again) with the
+failure and both runs. Tests that failed before too are only listed. The run page shows the summary.
+
 ## Ticket branches merge themselves
 
 Off by default: a project turns it on with `"autoMerge": true` in `config.json`; today every project has it off, and

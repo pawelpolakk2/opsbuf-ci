@@ -199,13 +199,24 @@ function renderRunHead(run) {
       <span class="grow"></span>
       ${FINISHED.has(run.status) ? `<button type="button" class="ghost" id="rerun">Run again</button>` : ''}
     </div>
-    ${run.error ? `<p class="run-error">The CI failed on its own: ${escape(run.error)}</p>` : ''}`;
+    ${run.error ? `<p class="run-error">The CI failed on its own: ${escape(run.error)}</p>` : ''}
+    ${run.e2e ? `<p class="e2e-summary">${describeEndToEnd(run.e2e)}</p>` : ''}`;
   document.getElementById('rerun')?.addEventListener('click', () => rerun(run));
+}
+
+function describeEndToEnd({ passed, failed, regressions, failing, tickets }) {
+  const ticketOf = (name) => tickets.find((it) => it.test === name);
+  const named = (name) => escape(name) + (ticketOf(name) ? ` (#${ticketOf(name).id})` : '');
+  return [
+    `End-to-end: ${passed} passed, ${failed} failed.`,
+    regressions.length ? `<strong>New failures:</strong> ${regressions.map((it) => named(it.name)).join(', ')}.` : '',
+    failing.length ? `Failing before too: ${failing.map(escape).join(', ')}.` : '',
+  ].filter(Boolean).join(' ');
 }
 
 async function rerun(run) {
   try {
-    const created = await fetchJson('/api/runs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: run.project, branch: run.branch, sha: run.sha }) });
+    const created = await fetchJson('/api/runs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: run.project, branch: run.branch, sha: run.sha, kind: run.kind }) });
     location.hash = `#/runs/${created.id}`;
   } catch (error) {
     showToast(error.message);

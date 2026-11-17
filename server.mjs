@@ -22,6 +22,9 @@ await fs.mkdir(dataDir, { recursive: true });
 const runner = new Runner({ store, config, dataDir, tracker: Tracker.fromConfig(config), publicUrl });
 await runner.assignProjectToOldRuns();
 await runner.markInterruptedRuns();
+// end-to-end runs start on their own schedule, only when a project released something new
+const SCHEDULE_CHECK_MS = 60_000;
+setInterval(() => runner.scheduleEndToEnd().catch((error) => console.error('end-to-end schedule:', error.message)), SCHEDULE_CHECK_MS).unref();
 
 const routes = [
   ['GET', /^\/api\/health$/, () => ({ status: 'ok', projects: config.projects.map((it) => it.id), isBusy: runner.isBusy, queued: runner.queue.length })],
@@ -82,7 +85,7 @@ function requireRun(id) {
 function enqueueFrom(body) {
   const readText = (key) => (typeof body[key] === 'string' && body[key] ? body[key] : undefined);
   const sha = /^[0-9a-f]{7,40}$/.test(readText('sha') ?? '') ? body.sha : null;
-  return runner.enqueue({ project: readText('project'), branch: readText('branch'), sha, trigger: readText('trigger') ?? 'manual' });
+  return runner.enqueue({ project: readText('project'), branch: readText('branch'), sha, trigger: readText('trigger') ?? 'manual', kind: readText('kind') === 'e2e' ? 'e2e' : undefined });
 }
 
 function toSummary(run) {

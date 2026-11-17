@@ -116,6 +116,7 @@ h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .back:hover { color: var(--fg); }
 .run-head .title { display: flex; align-items: center; gap: 10px; }
 .run-head .meta { margin-top: 8px; padding-left: 32px; }
+.e2e-summary { margin: 8px 0 0; padding-left: 32px; color: var(--fg-muted); font-size: 13px; }
 .summary { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 12px; margin-top: 20px; }
 .card { display: flex; flex-direction: column; }
 .card .badge { align-self: flex-start; font-size: 15px; padding: 5px 14px 5px 10px; }

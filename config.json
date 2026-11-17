@@ -58,7 +58,17 @@
           "name": "Testing app",
           "run": "bash apps/testing/scripts/release.sh"
         }
-      ]
+      ],
+      "e2e": {
+        "name": "End-to-end",
+        "every": "1h",
+        "run": "bash apps/testing/scripts/e2e.sh",
+        "report": {
+          "type": "junit",
+          "file": "e2e.xml",
+          "title": "End-to-end"
+        }
+      }
     },
     {
       "id": "opsbuf-web",
