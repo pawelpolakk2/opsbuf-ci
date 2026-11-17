@@ -90,3 +90,20 @@ test('groups the tests of Node\'s JUnit report by their file', () => {
     ['test/runner.test.mjs', ['failed']],
   ]);
 });
+
+test('keeps every test when a name or a message holds a ">", which Node does not escape', () => {
+  const xml = `<testsuites>
+	<testcase name="Logs: level > INFO shows the more severe lines" time="7.6" classname="test" file="/repo/a.test.ts"/>
+	<testcase name="Logs: a level outside the order" time="6.1" classname="test" file="/repo/a.test.ts">
+		<failure type="testCodeFailure" message="step 1: it is > 0 and < 5">Error: step 1</failure>
+	</testcase>
+	<testcase name="Logs: a new order" time="5.5" classname="test" file="/repo/a.test.ts"/>
+</testsuites>`;
+  const [suite] = parseJunit(xml);
+  assert.deepEqual(suite.tests.map((it) => [it.name, it.status]), [
+    ['Logs: level > INFO shows the more severe lines', 'passed'],
+    ['Logs: a level outside the order', 'failed'],
+    ['Logs: a new order', 'passed'],
+  ]);
+  assert.match(suite.tests[1].message, /^step 1: it is > 0 and < 5/);
+});
