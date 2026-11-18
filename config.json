@@ -85,6 +85,13 @@
               "dev-env/seed.sh"
             ],
             "run": "bash dev-env/seed.sh"
+            },
+            {
+              "name": "dev-env redis seed",
+              "inputs": [
+                "dev-env/redis"
+              ],
+              "run": "bash dev-env/redis-seed.sh"
             }
           ],
           "report": {

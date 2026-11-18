@@ -81,8 +81,9 @@ the hash equals the stamp it kept in `data/stamps` the last time the step passed
 is up to date; otherwise it runs, its log says why, and the new stamp is kept only when it passed. A failed prepare stops
 the job, with its output in its log. opsbuf-app's e2e job first applies the dev-env manifests when `dev-env` changed
 (`dev-env/apply.sh`: `kubectl apply` of the kustomize build, no delete, prune or restart; its log lists what changed),
-then reseeds the logs when their seed changed (`dev-env/seed.sh`: only the log shipper). So a dev-env change reaches the
-mini before the tests that need it.
+then reseeds the logs when their seed changed (`dev-env/seed.sh`: only the log shipper), then reseeds Redis when
+`dev-env/redis` changed (`dev-env/redis-seed.sh`: one job that heals and seeds, never builds; a failed job fails the e2e
+with its log). So a dev-env change reaches the mini before the tests that need it.
 
 ### Two lanes
 
