@@ -30,7 +30,8 @@ async function createSetup() {
     release: [{ name: 'Release', run: 'true' }],
     jobs: {
       echo: { name: 'Echo', params: ['tests', 'mode'], run: `printf '%s' "$CI_PARAM_TESTS" > "$CI_ARTIFACTS/tests.txt"` },
-      slow: { name: 'Slow', run: `until [ -f ${gate} ]; do sleep 0.05; done` },
+      // gives up after 20 s, so a failed test never holds the suite
+      slow: { name: 'Slow', run: `until [ -f ${gate} ] || [ $SECONDS -gt 20 ]; do sleep 0.05; done` },
     },
   };
   const store = new Store(path.join(root, 'data'), 50);
@@ -116,6 +117,24 @@ test('cancel takes a waiting run out of the queue and stops a running one', asyn
   assert.equal(stopped.status, 'cancelled');
   assert.deepEqual(stopped.steps.map((it) => [it.name, it.status]), [['Checkout', 'passed'], ['Slow', 'cancelled']]);
   await assert.rejects(setup.runner.cancel(running.id), { status: 409, message: /has ended: cancelled/ });
+});
+
+test('a cancel just before the step starts its process stops that process as it starts', async () => {
+  const setup = await createSetup();
+  const save = setup.store.save.bind(setup.store);
+  let cancelled = null;
+  // runStep saves the step as running before it starts the process: the cancel lands right there
+  setup.store.save = async (run) => {
+    if (!cancelled && run.steps.some((it) => it.name === 'Slow' && it.status === 'running')) cancelled = setup.runner.cancel(run.id);
+    return save(run);
+  };
+  const started = Date.now();
+  const run = await setup.runner.startJob({ project: 'demo', job: 'slow', sha: setup.sha });
+  const stopped = await waitFor(setup.store, run.id, FINISHED);
+  await cancelled;
+  assert.equal(stopped.status, 'cancelled');
+  assert.deepEqual(stopped.steps.map((it) => [it.name, it.status]), [['Checkout', 'passed'], ['Slow', 'cancelled']]);
+  assert.ok(Date.now() - started < 5000);
 });
 
 async function waitForStep(store, id, name, status) {
