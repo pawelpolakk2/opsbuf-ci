@@ -75,12 +75,14 @@ refused. Cancel takes a waiting run out of the queue, or stops the running step'
 
 ### Prepare
 
-A job may get ready first: `"prepare": {"name", "inputs", "run"}` is a step between Checkout and the job's own step. The
-CI hashes the `inputs` (files or folders) of the commit under test. When the hash equals the stamp it kept in
-`data/stamps` the last time the step passed, the step is skipped and its log says it is up to date; otherwise it runs, its
-log says why, and the new stamp is kept only when it passed. A failed prepare stops the job. opsbuf-app's e2e job reseeds
-the dev-env logs this way (`dev-env/seed.sh`: only the log shipper, never Redis or a down and up), so a seed change
-reaches the mini before the tests that need it.
+A job may get ready first: `"prepare"` is one step `{"name", "inputs", "run"}` or a list of them, run in order between
+Checkout and the job's own step. For each, the CI hashes its `inputs` (files or folders) of the commit under test. When
+the hash equals the stamp it kept in `data/stamps` the last time the step passed, the step is skipped and its log says it
+is up to date; otherwise it runs, its log says why, and the new stamp is kept only when it passed. A failed prepare stops
+the job, with its output in its log. opsbuf-app's e2e job first applies the dev-env manifests when `dev-env` changed
+(`dev-env/apply.sh`: `kubectl apply` of the kustomize build, no delete, prune or restart; its log lists what changed),
+then reseeds the logs when their seed changed (`dev-env/seed.sh`: only the log shipper). So a dev-env change reaches the
+mini before the tests that need it.
 
 ### Two lanes
 

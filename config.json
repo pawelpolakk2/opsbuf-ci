@@ -67,8 +67,16 @@
           "params": [
             "tests"
           ],
-          "prepare": {
-            "name": "dev-env seed",
+          "prepare": [
+            {
+              "name": "dev-env manifests",
+              "inputs": [
+                "dev-env"
+              ],
+              "run": "bash dev-env/apply.sh"
+            },
+            {
+              "name": "dev-env seed",
             "inputs": [
               "dev-env/seed",
               "dev-env/data",
@@ -77,7 +85,8 @@
               "dev-env/seed.sh"
             ],
             "run": "bash dev-env/seed.sh"
-          },
+            }
+          ],
           "report": {
             "type": "junit",
             "file": "e2e.xml",
