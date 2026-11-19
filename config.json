@@ -5,7 +5,7 @@
   "keepArtifacts": 10,
   "stepTimeoutSec": 1800,
   "env": {
-    "PATH": "/Users/macmini/.nvm/versions/node/v26.13.0/bin:/Users/macmini/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PATH": "/Users/macmini/.nvm/versions/node/v26.13.0/bin:/Users/macmini/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/Docker.app/Contents/Resources/bin",
     "DOCKER_HOST": "unix:///Users/macmini/.docker/run/docker.sock",
     "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE": "/var/run/docker.sock",
     "CARGO_TERM_COLOR": "never",

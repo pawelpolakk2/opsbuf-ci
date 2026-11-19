@@ -140,11 +140,13 @@ cancelled scheduled run does not count, so the schedule starts the job again. A 
 ## Container tests (Docker on the mini)
 
 Some tests start real containers (the relay tests of opsbuf-app: Postgres, k3s, openssh). They run on the mini's
-Docker Desktop, which starts at login. A CI job is a launchd child, so it does not see Docker's default socket;
-`config.json` `env` points it at the Desktop socket for every step:
+Docker Desktop, which starts at login. A CI job is a launchd child: it has neither the `docker` command on its `PATH`
+nor Docker's default socket. `config.json` `env` adds the Desktop CLI folder to `PATH` and points at the Desktop socket
+for every step:
 
 | Variable                                 | Value                                              | Why                                   |
 |------------------------------------------|----------------------------------------------------|---------------------------------------|
+| `PATH` (ends with)                       | `/Applications/Docker.app/Contents/Resources/bin`  | the tests run `docker info`           |
 | `DOCKER_HOST`                            | `unix:///Users/macmini/.docker/run/docker.sock`    | testcontainers finds the engine       |
 | `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`  | `/var/run/docker.sock`                             | Ryuk mounts the socket inside the VM  |
 
