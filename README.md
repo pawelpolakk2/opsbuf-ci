@@ -137,6 +137,21 @@ The CI's own release copies the code and asks for a restart (`data/restart-reque
 the server cancels its jobs (reason: the restart, so none stays running), exits, and launchd starts the new code. A
 cancelled scheduled run does not count, so the schedule starts the job again. A new https name for an app: `scripts/add-site.sh <host> <port> <name> <label>`.
 
+## Container tests (Docker on the mini)
+
+Some tests start real containers (the relay tests of opsbuf-app: Postgres, k3s, openssh). They run on the mini's
+Docker Desktop, which starts at login. A CI job is a launchd child, so it does not see Docker's default socket;
+`config.json` `env` points it at the Desktop socket for every step:
+
+| Variable                                 | Value                                              | Why                                   |
+|------------------------------------------|----------------------------------------------------|---------------------------------------|
+| `DOCKER_HOST`                            | `unix:///Users/macmini/.docker/run/docker.sock`    | testcontainers finds the engine       |
+| `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`  | `/var/run/docker.sock`                             | Ryuk mounts the socket inside the VM  |
+
+With Docker Desktop quit, the container tests fail red with "Docker is not running": they must never pass without
+Docker. Fix: start it with `ssh macmini@macmini open -a Docker`, wait until `docker ps` answers, then run again.
+The variables live in this repo, so a redeploy keeps them. There is no Colima on the mini.
+
 ## Run and deploy
 
 ```bash
