@@ -140,6 +140,15 @@ test('a restart waits for the builds, then cancels the jobs, so none stays runni
   assert.equal(fs.existsSync(path.join(setup.dataDir, 'restart-requested')), false);
 });
 
+test('a run gets its TMPDIR under the tmpRoot of the config, so socket paths stay short', async () => {
+  const setup = await createSetup();
+  const tmpRoot = path.join(setup.dataDir, 'short-tmp');
+  setup.runner.tmpRoot = tmpRoot;
+  setup.openJobGate();
+  const job = await waitFor(setup.store, (await setup.runner.startJob({ project: 'demo', job: 'e2e', sha: setup.sha })).id, FINISHED);
+  assert.equal(path.dirname(readArtifact(setup.store, job, 'tmp.txt')), tmpRoot);
+});
+
 test('a step whose process still writes to its TMPDIR after it ended does not stop the lane', async () => {
   const setup = await createSetup();
   setup.runner.config.projects[0].jobs.late = { name: 'Late', run: 'end=$((SECONDS + 2)); (while [ $SECONDS -lt $end ]; do mkdir -p "$TMPDIR/late/$RANDOM" 2>/dev/null; done) >/dev/null 2>&1 & sleep 0.2' };

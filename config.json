@@ -4,6 +4,7 @@
   "keepRuns": 200,
   "keepArtifacts": 10,
   "stepTimeoutSec": 1800,
+  "tmpRoot": "/tmp/oci",
   "env": {
     "PATH": "/Users/macmini/.nvm/versions/node/v26.13.0/bin:/Users/macmini/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/Docker.app/Contents/Resources/bin",
     "DOCKER_HOST": "unix:///Users/macmini/.docker/run/docker.sock",

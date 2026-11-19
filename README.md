@@ -154,6 +154,9 @@ With Docker Desktop quit, the container tests fail red with "Docker is not runni
 Docker. Fix: start it with `ssh macmini@macmini open -a Docker`, wait until `docker ps` answers, then run again.
 The variables live in this repo, so a redeploy keeps them. There is no Colima on the mini.
 
+Each run gets its own `TMPDIR` under `tmpRoot` (`/tmp/oci`). It stays short on purpose: the relay's ssh control sockets
+live in it, and a macOS socket path may not pass 104 characters; under `/var/folders/...` it did.
+
 ## Run and deploy
 
 ```bash
