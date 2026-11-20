@@ -269,6 +269,20 @@
       ]
     },
     {
+      "id": "opsbuf-testlab",
+      "name": "test lab",
+      "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-testlab.git",
+      "defaultBranch": "main",
+      "mirror": "git@github.com:pawelpolakk2/opsbuf-testlab.git",
+      "autoMerge": false,
+      "steps": [
+        {
+          "name": "Infra tests",
+          "run": "bash deploy/test.sh"
+        }
+      ]
+    },
+    {
       "id": "opsbuf-ci",
       "name": "CI",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",
