@@ -327,11 +327,21 @@
         },
         {
           "name": "Java tests",
-          "run": "bash services/java/test.sh"
+          "run": "bash services/java/test.sh; status=$?; mkdir -p services/java/build/all-test-results && cp services/java/*/build/test-results/test/TEST-*.xml services/java/build/all-test-results/; exit $status",
+          "report": {
+            "type": "junit",
+            "dir": "services/java/build/all-test-results",
+            "title": "Java"
+          }
         },
         {
           "name": "Python tests",
-          "run": "bash services/python/test.sh"
+          "run": "bash services/python/test.sh",
+          "report": {
+            "type": "junit",
+            "dir": "services/python/build/test-results",
+            "title": "Python"
+          }
         },
         {
           "name": "Rust tests",
