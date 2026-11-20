@@ -292,6 +292,32 @@
             "file": "node-tests.xml",
             "title": "Node"
           }
+        },
+        {
+          "name": "Control build",
+          "run": "cd control && pnpm install --frozen-lockfile --ignore-workspace && pnpm build"
+        },
+        {
+          "name": "Control tests",
+          "run": "mkdir -p ~/.cache/opsbuf-agents && cd control && TESTLAB_TEST_CONTEXT=docker-desktop lockf -k -t 900 ~/.cache/opsbuf-agents/container-tests.lock timeout 900 node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=\"$CI_REPORTS/control-tests.xml\" server/*.test.ts",
+          "report": {
+            "type": "junit",
+            "file": "control-tests.xml",
+            "title": "Control"
+          }
+        },
+        {
+          "name": "Crowd build",
+          "run": "cd traffic/crowd && pnpm install --frozen-lockfile --ignore-workspace && npx tsc -p ."
+        },
+        {
+          "name": "Crowd tests",
+          "run": "cd traffic/crowd && TESTLAB_TEST_CONTEXT=docker-desktop timeout 300 node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=\"$CI_REPORTS/crowd-tests.xml\" test/*.test.ts",
+          "report": {
+            "type": "junit",
+            "file": "crowd-tests.xml",
+            "title": "Crowd"
+          }
         }
       ]
     },
