@@ -275,6 +275,12 @@
       "defaultBranch": "main",
       "mirror": "git@github.com:pawelpolakk2/opsbuf-testlab.git",
       "autoMerge": false,
+      "keep": [
+        "services/java/.gradle"
+      ],
+      "env": {
+        "JAVA_HOME": "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+      },
       "steps": [
         {
           "name": "Infra tests",
@@ -317,6 +323,22 @@
             "type": "junit",
             "file": "crowd-tests.xml",
             "title": "Crowd"
+          }
+        },
+        {
+          "name": "Java tests",
+          "run": "bash services/java/test.sh"
+        },
+        {
+          "name": "Python tests",
+          "run": "bash services/python/test.sh"
+        },
+        {
+          "name": "Rust tests",
+          "run": "bash services/rust/payments-gw/test.sh",
+          "report": {
+            "type": "cargo",
+            "title": "Rust"
           }
         }
       ]
