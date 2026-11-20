@@ -279,6 +279,19 @@
         {
           "name": "Infra tests",
           "run": "bash deploy/test.sh"
+        },
+        {
+          "name": "Node build",
+          "run": "cd frontends && npm ci --no-audit --no-fund && npm run build && npx tsc -p ../services/node/tsconfig.json"
+        },
+        {
+          "name": "Node tests",
+          "run": "mkdir -p ~/.cache/opsbuf-agents && lockf -k -t 900 ~/.cache/opsbuf-agents/container-tests.lock timeout 900 node --test --test-timeout=600000 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=\"$CI_REPORTS/node-tests.xml\" 'libs/node/test/*.test.ts' 'services/node/test/*.test.ts'",
+          "report": {
+            "type": "junit",
+            "file": "node-tests.xml",
+            "title": "Node"
+          }
         }
       ]
     },
