@@ -142,6 +142,27 @@ test('a main push stops a running branch build of the same commit and releases i
   assert.equal(finished.released, true);
 });
 
+test('a newer pushed commit of a branch takes the place of its queued push builds, not of a running one', async () => {
+  const { store, runner, sha, git } = await createPushRunner('sleep 5');
+  const running = await runner.enqueue({ branch: 'main', sha, trigger: 'push' });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  git('commit', '-q', '--allow-empty', '-m', 'second');
+  const older = await runner.enqueue({ branch: 'main', sha: git('rev-parse', 'HEAD').trim(), trigger: 'push' });
+  const manual = await runner.enqueue({ branch: 'main', sha, trigger: 'manual' });
+  const otherBranch = await runner.enqueue({ branch: 'other', sha: git('rev-parse', 'other').trim(), trigger: 'push' });
+  git('commit', '-q', '--allow-empty', '-m', 'third');
+  const newest = await runner.enqueue({ branch: 'main', sha: git('rev-parse', 'HEAD').trim(), trigger: 'push' });
+
+  assert.equal(store.find(running.id).status, 'running');
+  assert.equal(store.find(older.id).status, 'cancelled');
+  assert.equal(store.find(older.id).supersededBy, newest.id);
+  assert.match(store.find(older.id).cancelReason, new RegExp(`#${newest.id}`));
+  assert.equal(store.find(manual.id).status, 'queued');
+  assert.equal(store.find(otherBranch.id).status, 'queued');
+  assert.deepEqual(runner.lanes.build.queue, [manual.id, otherBranch.id, newest.id]);
+  for (const it of [manual, otherBranch, newest, running]) await runner.cancel(it.id);
+});
+
 test('a commit pushed twice, or to a branch after main, builds once; a new commit builds', async () => {
   const { store, runner, sha, git } = await createPushRunner();
   const first = await runner.enqueue({ branch: 'main', sha, trigger: 'push' });
