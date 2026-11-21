@@ -351,6 +351,12 @@
             "title": "Rust"
           }
         }
+      ],
+      "release": [
+        {
+          "name": "Deploy",
+          "run": "bash deploy/deploy.sh all all"
+        }
       ]
     },
     {
