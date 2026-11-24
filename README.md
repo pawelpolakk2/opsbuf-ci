@@ -137,6 +137,10 @@ The CI's own release copies the code and asks for a restart (`data/restart-reque
 the server cancels its jobs (reason: the restart, so none stays running), exits, and launchd starts the new code. A
 cancelled scheduled run does not count, so the schedule starts the job again. A new https name for an app: `scripts/add-site.sh <host> <port> <name> <label>`.
 
+A single-page app served by nginx from a folder: `scripts/add-site.sh <host> <folder> <name> -`. A `.lan` name comes
+from the router's DNS, not Bonjour, and gets its certificate from a second CA that may sign only `.lan` names
+(`scripts/make-lan-certificate.sh`, CA in `~/.config/opsbuf-sites/lan-ca`).
+
 ## Container tests (Docker on the mini)
 
 Some tests start real containers (the relay tests of opsbuf-app: Postgres, k3s, openssh). They run on the mini's

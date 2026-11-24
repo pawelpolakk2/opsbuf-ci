@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Puts an app of the Mac mini behind https://<host>: a certificate from the local CA (LAN names only), an nginx block
 # on 443 and a Bonjour name. Safe to run again.
-# Usage: scripts/add-site.sh <host> <port> <service name> <LaunchAgent label>
+# Usage: scripts/add-site.sh <host> <port or folder> <service name> <LaunchAgent label>
 #   e.g. scripts/add-site.sh opsbuf.local 7480 "opsbuf web" pl.opsbuf.web.name
-# The label "-" skips the Bonjour name, for an app that announces its own (the tracker, pl.ptx.issues.name).
+# The label "-" skips the Bonjour name, for an app that announces its own (the tracker, pl.ptx.issues.name) or a .lan
+# name, which comes from the router's DNS. A folder on the mini instead of a port serves a single-page app from it:
+#   scripts/add-site.sh budzet.lan /Users/macmini/Apps/budzet/current "Budżet domowy" -
 set -euo pipefail
-[[ $# -eq 4 ]] || { echo "Usage: scripts/add-site.sh <host> <port> <service name> <LaunchAgent label>" >&2; exit 2; }
-host=$1 port=$2 service=$3 label=$4
+[[ $# -eq 4 ]] || { echo "Usage: scripts/add-site.sh <host> <port or folder> <service name> <LaunchAgent label>" >&2; exit 2; }
+host=$1 target=$2 service=$3 label=$4
 mini=macmini@macmini
 here=$(cd "$(dirname "$0")" && pwd)
 tls_base="$HOME/.config/opsbuf-sites/$host"
@@ -17,6 +19,10 @@ run_on_mini() {
 
 make_certificate_if_missing() {
   [[ -s "$tls_base/tls/cert.pem" ]] && return
+  if [[ "$host" == *.lan ]]; then
+    bash "$here/make-lan-certificate.sh" "$host"
+    return
+  fi
   mkdir -p "$tls_base" && chmod 700 "$tls_base"
   ln -sfn "$HOME/.config/opsbuf-issues/ca" "$tls_base/ca"
   PTX_TLS_DIR="$tls_base" PTX_TLS_NAMES="$host localhost" PTX_TLS_ADDRESSES="127.0.0.1 192.168.88.3" \
@@ -30,9 +36,17 @@ copy_certificate() {
   run_on_mini "chmod 600 ~/Apps/nginx/tls/$host/key.pem"
 }
 
+render_nginx_block() {
+  if [[ "$target" == /* ]]; then
+    sed -e "s|__HOST__|$host|g" -e "s|__ROOT__|$target|g" "$here/nginx-static-block.conf"
+  else
+    sed -e "s|__HOST__|$host|g" -e "s|__PORT__|$target|g" "$here/nginx-block.conf"
+  fi
+}
+
 add_nginx_block_if_missing() {
-  echo "== $host: nginx on 443 -> 127.0.0.1:$port"
-  sed -e "s/__HOST__/$host/g" -e "s/__PORT__/$port/g" "$here/nginx-block.conf" | run_on_mini "
+  echo "== $host: nginx on 443 -> $target"
+  render_nginx_block | run_on_mini "
     if grep -q 'server_name $host;' ~/Apps/nginx/nginx.conf; then cat > /dev/null; else
       cp ~/Apps/nginx/nginx.conf ~/Apps/nginx/nginx.conf.before-$host
       perl -0pi -e 's/\}\s*\z//' ~/Apps/nginx/nginx.conf
