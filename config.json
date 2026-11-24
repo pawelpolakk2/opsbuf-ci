@@ -360,6 +360,39 @@
       ]
     },
     {
+      "id": "budzet-domowy",
+      "name": "Budżet domowy",
+      "repo": "/Users/macmini/Apps/opsbuf-ci/repos/budzet-domowy.git",
+      "defaultBranch": "main",
+      "autoMerge": false,
+      "steps": [
+        {
+          "name": "Install",
+          "run": "pnpm install --frozen-lockfile",
+          "stopOnFailure": true
+        },
+        {
+          "name": "Tests",
+          "run": "pnpm exec ng test --watch=false --reporters=default --reporters=junit --output-file=\"$CI_REPORTS/tests.xml\"",
+          "report": {
+            "type": "junit",
+            "file": "tests.xml",
+            "title": "Budżet domowy"
+          }
+        },
+        {
+          "name": "Build",
+          "run": "pnpm build"
+        }
+      ],
+      "release": [
+        {
+          "name": "Release",
+          "run": "bash deploy/release.sh"
+        }
+      ]
+    },
+    {
       "id": "opsbuf-ci",
       "name": "CI",
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/opsbuf-ci.git",

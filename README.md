@@ -51,6 +51,7 @@ ships nothing. The run then shows **released**. Each project releases itself wit
 | opsbuf-app     | `apps/testing/scripts/release.sh` | https://testing.local              |
 | opsbuf-web     | `deploy/release.sh`              | https://opsbuf.local               |
 | opsbuf-issues  | `scripts/release.sh`             | https://issues.local               |
+| budzet-domowy  | `deploy/release.sh`              | https://budzet.lan                 |
 | opsbuf-ci      | `scripts/release.sh`             | https://ci.local                   |
 | elektryka      | `scripts/release.sh`             | https://elektryka.local            |
 | instalacje     | `scripts/release.sh`             | https://instalacje.local           |
