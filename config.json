@@ -365,6 +365,9 @@
       "repo": "/Users/macmini/Apps/opsbuf-ci/repos/budzet-domowy.git",
       "defaultBranch": "main",
       "autoMerge": false,
+      "env": {
+        "BUDZET_TEST_DATABASE_URL": "postgresql:///budzet_test?host=/Users/macmini/Apps/budzet/run&port=5441&user=budzet"
+      },
       "steps": [
         {
           "name": "Install",
@@ -387,6 +390,15 @@
             "type": "junit",
             "file": "server.xml",
             "title": "Budżet domowy: API komentarzy"
+          }
+        },
+        {
+          "name": "Ledger API tests",
+          "run": "pnpm --filter budzet-api exec vitest run --reporter=default --reporter=junit --outputFile.junit=\"$CI_REPORTS/ledger.xml\"",
+          "report": {
+            "type": "junit",
+            "file": "ledger.xml",
+            "title": "Budżet domowy: API księgowe"
           }
         },
         {
