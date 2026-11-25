@@ -381,6 +381,15 @@
           }
         },
         {
+          "name": "Server tests",
+          "run": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=\"$CI_REPORTS/server.xml\" \"server/*.test.mjs\"",
+          "report": {
+            "type": "junit",
+            "file": "server.xml",
+            "title": "Budżet domowy: API komentarzy"
+          }
+        },
+        {
           "name": "Build",
           "run": "pnpm build"
         }
